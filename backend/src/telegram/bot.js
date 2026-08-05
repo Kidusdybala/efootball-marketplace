@@ -97,18 +97,9 @@ const formatListingCard = (listing, seller) => {
 };
 
 const formatChannelListingCard = (listing) => {
-  const lines = [];
-  lines.push(`<b>${listing.title}</b>`);
-  lines.push(`💸 ${formatMoney(listing.price, listing.currency)}${listing.negotiable ? ' (Negotiable)' : ''}`);
-  lines.push(`📱 ${listing.platform}`);
-  if (listing.overall) lines.push(`⚽ Team Overall: ${listing.overall}`);
-  if (listing.teamName) lines.push(`👥 Team: ${listing.teamName}`);
-  if (listing.featuredPlayers?.length) lines.push(`⭐ Featured: ${listing.featuredPlayers.slice(0, 3).join(', ')}`);
-  lines.push(`\n📝 ${listing.description}`);
-  lines.push(`\n📅 Listed: ${new Date(listing.createdAt).toLocaleDateString()}`);
-  lines.push(`🆔 Listing ID: <code>${shortId(listing._id)}</code>`);
-  return lines.join('\n');
+  return `Price: <b>${formatMoney(listing.price, listing.currency)}</b>`;
 };
+
 
 const mainMenuKeyboard = (user) => {
   const rows = [
@@ -282,7 +273,6 @@ const publishListingToChannel = async (listing, seller) => {
 
   const row = [
     ...(buyUrl ? [{ text: 'BUY', url: buyUrl }] : []),
-    ...(contactAdminUrl ? [{ text: 'CONTACT ADMIN', url: contactAdminUrl }] : []),
   ];
 
   const reply_markup = { inline_keyboard: [row] };
@@ -549,9 +539,7 @@ const initTelegramBot = () => {
       } catch (e) {
         banks = [];
       }
-      const summary = `የእርስዎ ትዕዛዝ ማጠቃለያ\n\n` +
-        `ምርት፡ ${listing.title}\n` +
-        `ዋጋ፡ ${priceStr}`;
+      const summary = `You selected: ${listing.title}\n\nPlease select your bank:`;
       if (!banks.length) {
         bot.sendMessage(msg.chat.id,
           summary +
@@ -563,13 +551,10 @@ const initTelegramBot = () => {
         return;
       }
       const rows = [];
-      for (let i = 0; i < banks.length; i += 2) {
-        const row = [];
-        row.push({ text: banks[i].name, callback_data: `bank_${i}` });
-        if (i + 1 < banks.length) row.push({ text: banks[i + 1].name, callback_data: `bank_${i + 1}` });
-        rows.push(row);
+      for (let i = 0; i < banks.length; i++) {
+        rows.push([{ text: banks[i].name, callback_data: `bank_${i}` }]);
       }
-      rows.push([{ text: 'ከፍያ አድርጓል ✅', callback_data: `paid_start_${listing._id}` }]);
+      rows.push([{ text: '🔙 Back', callback_data: `delete_msg` }]);
       setSession(msg.chat.id, 'buy_listing', { listingId: String(listing._id) });
       bot.sendMessage(msg.chat.id, summary, {
         parse_mode: 'HTML',
@@ -902,6 +887,10 @@ const initTelegramBot = () => {
 
     try {
       if (raw === 'noop') { answer(); return; }
+      if (raw === 'delete_msg') {
+        bot.deleteMessage(chatId, msgId).catch(() => {});
+        return answer();
+      }
       if (raw.startsWith('pf_')) {
         const session = getSession(chatId);
         if (!session || session.state !== 'create_platform') { answer('Session expired, start /sell again', true); return; }
@@ -967,19 +956,22 @@ const initTelegramBot = () => {
         const bank = banks[idx];
         if (!bank) { answer('Bank not found', true); return; }
         answer();
-        const bankDetails = `🏦 <b>${bank.name}</b>\n` +
-          `Account: <code>${bank.account}</code>\n` +
-          `Name: ${bank.holder}`;
         bot.sendMessage(chatId,
-          `የእርስዎ ትዕዛዝ ማጠቃለያ\n\n` +
-          `ምርት፡ ${listing.title}\n` +
-          `ዋጋ፡ ${priceStr}\n\n` +
-          bankDetails +
-          `\n\n➡️ቁጥሮቹን በመንካት ብቻ ቀጥታ ያለምንም ስህተት 𝘾𝙊𝙋𝙔 ማድረግ ትችላላቹ 👍\n\n` +
-          `<b>ሕጋዊ ማስጠንቀቂያ</b>\n` +
-          `በክፍያ ይህን ያረጋግጡ፡ ከ18 አመት በላይ ነዎት እና የእኛን ውሎች እና መመሪያዎች ይቀበላሉ፡\n\n` +
-          `ካስከፈሉ በኋላ <b>ከፍያ አድርጓል ✅</b> የሚለውን ይጫኑ እና ደረሰኝዎን ያስገቡ።\n\n` +
-          `የበተን ቢመለስ <code>/paid ${shortId(listing._id)}</code> ይጠቀሙ።`,
+          `✅ Your Order Summary\n` +
+          `Product: ${listing.title}\n` +
+          `Price: ${priceStr}\n` +
+          `Bank: ${bank.name}\n\n` +
+          `Please send exactly ${priceStr} to:\n` +
+          `• Name: ${bank.holder}\n` +
+          `• Account: <code>${bank.account}</code>\n\n` +
+          `⚠️ Legal Warning / የህግ ማሳሰቢያ:\n` +
+          `By paying, you confirm you are 18+ and agree to our Terms.\n` +
+          `ክፍያ ሲፈፅሙ ዕድሜዎ 18+ መሆኑን እና በደንቡ መስማማትዎን ያረጋግጣሉ፡፡\n\n` +
+          `1. ከላይ ወደ ተቀመጠው አካውንት ትክክለኛውን ሂሳብ ያስገቡ።\n` +
+          `2. ክፍያውን እንደፈጸሙ ከ ${bank.name} የሚደርስዎትን የ SMS መልእክት ይመልከቱ::\n` +
+          `3. ⚠️ ማሳሰቢያ: ልክ ከላይ በምስሉ ላይ እንደተመለከተው፣ ክፍያውን ሲፈጽሙ ከ ${bank.name} የተላከሎትን መልእክት ሙሉውን (Copy) ያድርጉ::\n` +
+          `4. ኮፒ ያደረጉትን ሙሉ መልእክት አሁን እዚህ ይላኩ!\n` +
+          `(This order will expire in 30 minutes)`,
           {
             parse_mode: 'HTML',
             reply_markup: { inline_keyboard: [[{ text: 'ከፍያ አድርጓል ✅', callback_data: `paid_start_${listing._id}` }]] },
