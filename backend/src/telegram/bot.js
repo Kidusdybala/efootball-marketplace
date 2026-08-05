@@ -166,7 +166,7 @@ const escrowAdminKeyboard = (listing) => {
 // Simplified: Just price and image
 const startCreateListingFlow = (chatId) => {
   setSession(chatId, 'create_price', {});
-  bot.sendMessage(chatId, 'Create New Listing\n\nStep 1/5: Enter the price in ETB (number only):', {
+  bot.sendMessage(chatId, 'Create New Listing\n\nStep 1/4: Enter the price in ETB (number only):', {
     parse_mode: 'HTML',
   });
 };
@@ -182,7 +182,7 @@ const handleCreateListingState = async (chatId, user, text) => {
       if (!Number.isFinite(price) || price < 0) { bot.sendMessage(chatId, 'ERROR: Invalid price. Enter a number (e.g. 150).'); return true; }
       d.price = price;
       setSession(chatId, 'create_creds_email', d);
-      bot.sendMessage(chatId, 'Step 2/5: Send the account EMAIL (encrypted & admin-only):', { parse_mode: 'HTML' });
+      bot.sendMessage(chatId, 'Step 2/4: Send the account EMAIL (encrypted & admin-only):', { parse_mode: 'HTML' });
       return true;
     }
 
@@ -190,22 +190,15 @@ const handleCreateListingState = async (chatId, user, text) => {
       if (!text.includes('@')) { bot.sendMessage(chatId, 'ERROR: Invalid email. Try again:'); return true; }
       d.email = text.trim();
       setSession(chatId, 'create_creds_password', d);
-      bot.sendMessage(chatId, 'Step 3/5: Send the account PASSWORD (encrypted & admin-only):', { parse_mode: 'HTML' });
+      bot.sendMessage(chatId, 'Step 3/4: Send the account PASSWORD (encrypted & admin-only):', { parse_mode: 'HTML' });
       return true;
     }
 
     case 'create_creds_password': {
       if (text.length < 3) { bot.sendMessage(chatId, 'ERROR: Password too short. Try again:'); return true; }
       d.password = text;
-      setSession(chatId, 'create_creds_extra', d);
-      bot.sendMessage(chatId, 'Step 4/5: Send extra info (backup codes / recovery email) or type <code>done</code>:', { parse_mode: 'HTML' });
-      return true;
-    }
-
-    case 'create_creds_extra': {
-      if (text && text.toLowerCase() !== 'done') d.extra = text;
       setSession(chatId, 'create_image', d);
-      bot.sendMessage(chatId, 'Step 5/5: Now send a photo/screenshot of your team account:', { parse_mode: 'HTML' });
+      bot.sendMessage(chatId, 'Step 4/4: Now send a photo/screenshot of your team account:', { parse_mode: 'HTML' });
       return true;
     }
 
