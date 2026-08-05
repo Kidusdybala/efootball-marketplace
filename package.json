@@ -1,0 +1,15 @@
+{
+  "name": "aurashop-marketplace",
+  "version": "1.0.0",
+  "description": "EFootball Account Marketplace - Telegram Bot + Channel + Backend (Node.js + MongoDB)",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "dev": "npm --prefix backend run dev",
+    "seed": "npm --prefix backend run seed",
+    "install:backend": "npm --prefix backend install"
+  },
+  "keywords": ["telegram", "bot", "marketplace", "efootball", "escrow"],
+  "author": "",
+  "license": "MIT"
+}
