@@ -10,7 +10,9 @@ const listingSchema = new mongoose.Schema(
     },
     title: { type: String, required: true, trim: true, maxlength: 200, index: true },
     slug: { type: String, unique: true, sparse: true },
-    price: { type: Number, required: true, min: 0, index: true },
+    price: { type: Number, required: true, min: 0, index: true }, // Total price buyer pays
+    sellerPrice: { type: Number, min: 0 }, // Amount seller receives
+    adminFee: { type: Number, min: 0 }, // Admin transaction fee
     currency: { type: String, default: 'ETB' },
     platform: {
       type: String,

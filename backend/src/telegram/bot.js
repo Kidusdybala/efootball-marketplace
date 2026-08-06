@@ -13,11 +13,13 @@ const getAdminIds = () => uniq([...parseCsv(process.env.ADMIN_TELEGRAM_IDS), pro
 const isAdminTelegramId = (id) => getAdminIds().includes(String(id));
 const getAdminChatIds = () => getAdminIds();
 
-const SERVICE_FEE_RATE = (() => {
-  const v = Number(process.env.SERVICE_FEE_RATE || 0.1);
-  if (!Number.isFinite(v) || v < 0 || v > 1) return 0.1;
-  return v;
-})();
+const LEGACY_SERVICE_FEE_RATE = 0.1;
+
+const calculateAdminFee = (sellerPrice) => {
+  if (sellerPrice <= 2000) return 100;
+  if (sellerPrice <= 10000) return 200;
+  return 300;
+};
 
 const getOrCreateUser = async (tgUser, chatId) => {
   let user = await User.findOne({ telegramId: String(tgUser.id) });
@@ -212,10 +214,15 @@ const handleCreateListingState = async (chatId, user, text) => {
 
 const finalizeCreateListingSimple = async (chatId, user, price, imageFileId, creds) => {
   const seller = user;
+  const adminFee = calculateAdminFee(price);
+  const totalPrice = price + adminFee;
+
   const listing = await Listing.create({
     sellerId: seller._id,
     title: 'EFootball Account',
-    price: price,
+    price: totalPrice,
+    sellerPrice: price,
+    adminFee: adminFee,
     platform: 'Cross-Platform',
     description: 'EFootball account listed via Telegram bot.',
     status: 'pending_review',
@@ -233,14 +240,15 @@ const finalizeCreateListingSimple = async (chatId, user, price, imageFileId, cre
 
   bot.sendMessage(chatId,
     `Listing Submitted!\n\n` +
-    `Price: ${formatMoney(price)}\n` +
+    `Your asking price: ${formatMoney(price)}\n` +
+    `Buyer pays (incl. fee): ${formatMoney(totalPrice)}\n` +
     `Your listing has been sent to admin for review.\n` +
     `Listing ID: <code>${shortId(listing._id)}</code>`,
     { parse_mode: 'HTML' },
   );
 
   const adminChatIds = getAdminChatIds();
-  let caption = `NEW LISTING PENDING REVIEW\n\nFrom: @${seller.username}\nPrice: ${formatMoney(price)}\nCredentials: INCLUDED (encrypted)\nListing ID: ${shortId(listing._id)}`;
+  let caption = `NEW LISTING PENDING REVIEW\n\nFrom: @${seller.username}\nBuyer Pays: ${formatMoney(totalPrice)}\nSeller Gets: ${formatMoney(price)}\nCredentials: INCLUDED (encrypted)\nListing ID: ${shortId(listing._id)}`;
   for (const adminChatId of adminChatIds) {
     if (!adminChatId) continue;
     if (imageFileId) {
@@ -478,12 +486,15 @@ const releaseEscrow = async (adminTgId, listingId) => {
     );
   }
   if (sellerChatId) {
+    const adminFee = listing.adminFee !== undefined ? listing.adminFee : listing.price * LEGACY_SERVICE_FEE_RATE;
+    const sellerGets = listing.sellerPrice !== undefined ? listing.sellerPrice : listing.price - adminFee;
+
     bot.sendMessage(sellerChatId,
       `✅ <b>BUYER RECEIVED ACCOUNT — PAYOUT PENDING</b>\n\n` +
       `🏷️ Listing: <b>${listing.title}</b>\n` +
-      `Agreed price: <b>${formatMoney(listing.price, listing.currency)}</b>\n` +
-      `Service fee (${(SERVICE_FEE_RATE * 100).toFixed(0)}%): <b>${formatMoney(listing.price * SERVICE_FEE_RATE, listing.currency)}</b>\n` +
-      `You will receive: <b>${formatMoney(listing.price * (1 - SERVICE_FEE_RATE), listing.currency)}</b>\n\n` +
+      `Buyer paid: <b>${formatMoney(listing.price, listing.currency)}</b>\n` +
+      `Admin fee: <b>${formatMoney(adminFee, listing.currency)}</b>\n` +
+      `You will receive: <b>${formatMoney(sellerGets, listing.currency)}</b>\n\n` +
       `Admin verified payment and released the account to the buyer. Admin will now send your payout. You will get a confirmation here once admin marks you as PAID.`,
       { parse_mode: 'HTML' },
     );
