@@ -240,8 +240,7 @@ const finalizeCreateListingSimple = async (chatId, user, price, imageFileId, cre
 
   bot.sendMessage(chatId,
     `Listing Submitted!\n\n` +
-    `Your asking price: ${formatMoney(price)}\n` +
-    `Buyer pays (incl. fee): ${formatMoney(totalPrice)}\n` +
+    `Price: ${formatMoney(price)}\n` +
     `Your listing has been sent to admin for review.\n` +
     `Listing ID: <code>${shortId(listing._id)}</code>`,
     { parse_mode: 'HTML' },
@@ -492,8 +491,6 @@ const releaseEscrow = async (adminTgId, listingId) => {
     bot.sendMessage(sellerChatId,
       `✅ <b>BUYER RECEIVED ACCOUNT — PAYOUT PENDING</b>\n\n` +
       `🏷️ Listing: <b>${listing.title}</b>\n` +
-      `Buyer paid: <b>${formatMoney(listing.price, listing.currency)}</b>\n` +
-      `Admin fee: <b>${formatMoney(adminFee, listing.currency)}</b>\n` +
       `You will receive: <b>${formatMoney(sellerGets, listing.currency)}</b>\n\n` +
       `Admin verified payment and released the account to the buyer. Admin will now send your payout. You will get a confirmation here once admin marks you as PAID.`,
       { parse_mode: 'HTML' },
@@ -1013,12 +1010,12 @@ const initTelegramBot = () => {
         const sellerChatId = listing.sellerId?.telegramChatId;
         const buyerChatId = listing.escrowBuyerId?.telegramChatId;
         if (sellerChatId) {
+          const adminFee = listing.adminFee !== undefined ? listing.adminFee : listing.price * LEGACY_SERVICE_FEE_RATE;
+          const sellerGets = listing.sellerPrice !== undefined ? listing.sellerPrice : listing.price - adminFee;
           bot.sendMessage(sellerChatId,
             `💸 <b>PAYOUT SENT</b>\n\n` +
             `🏷️ Listing: <b>${listing.title}</b>\n` +
-            `Agreed price: <b>${formatMoney(listing.price, listing.currency)}</b>\n` +
-            `Service fee (${(SERVICE_FEE_RATE * 100).toFixed(0)}%): <b>${formatMoney(listing.price * SERVICE_FEE_RATE, listing.currency)}</b>\n` +
-            `You received: <b>${formatMoney(listing.price * (1 - SERVICE_FEE_RATE), listing.currency)}</b>\n\n` +
+            `You received: <b>${formatMoney(sellerGets, listing.currency)}</b>\n\n` +
             `✅ Admin has marked your payout as completed. Thank you for using AuraShop.`,
             { parse_mode: 'HTML' },
           );
