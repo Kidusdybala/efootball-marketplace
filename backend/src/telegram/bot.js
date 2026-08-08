@@ -116,7 +116,7 @@ const mainMenuKeyboard = (user) => {
 };
 
 const showMainMenu = (chatId, user) => {
-  bot.sendMessage(chatId, '<tg-emoji emoji-id="5368324170671202286">✨</tg-emoji> <b>AuraShop Main Menu</b> <tg-emoji emoji-id="5368324170671202286">✨</tg-emoji>\n\nChoose an option below or use a command:\n/menu /sell /browse /search /paid /admins /deliver', {
+  bot.sendMessage(chatId, '<tg-emoji emoji-id="5368324170671202286">✨</tg-emoji> <b>AuraShop Main Menu</b>\n\nChoose an option below or use a command:\n/menu /sell /browse /search /paid /admins /deliver', {
     parse_mode: 'HTML', reply_markup: mainMenuKeyboard(user),
   });
 };
