@@ -583,15 +583,15 @@ const initTelegramBot = () => {
     const adminBadge = isAdmin ? '\n🛡️ <b>ADMIN ACCOUNT</b>' : '';
     bot.sendMessage(msg.chat.id,
       `👋 Welcome <b>${user.firstName || user.username}</b> to <b>AuraShop EFootball Marketplace!</b>${adminBadge}\n\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> The SAFEST way to buy/sell EFootball accounts with escrow protection.\n\n` +
-      `<tg-emoji emoji-id="5368324170671202286">📣</tg-emoji> <b>Official Channel:</b> ${process.env.TELEGRAM_CHANNEL_ID || '(set TELEGRAM_CHANNEL_ID)'}\n\n` +
-      `<tg-emoji emoji-id="5368324170671202286">📌</tg-emoji> <b>Main Commands:</b>\n` +
+      `<tg-emoji emoji-id="5368324170671202294">🛡️</tg-emoji> The SAFEST way to buy/sell EFootball accounts with escrow protection.\n\n` +
+      `<tg-emoji emoji-id="5368324170671202289">📣</tg-emoji> <b>Official Channel:</b> ${process.env.TELEGRAM_CHANNEL_ID || '(set TELEGRAM_CHANNEL_ID)'}\n\n` +
+      `<tg-emoji emoji-id="5368324170671202289">📌</tg-emoji> <b>Main Commands:</b>\n` +
       `  /sell    — <tg-emoji emoji-id="5368324170671202286">➕</tg-emoji> List a new account for sale\n` +
-      `  /browse  — <tg-emoji emoji-id="5368324170671202286">🛒</tg-emoji> Browse active listings\n` +
-      `  /search &lt;keyword&gt; — <tg-emoji emoji-id="5368324170671202286">🔍</tg-emoji> Search listings\n` +
-      `  /paid &lt;id&gt;    — <tg-emoji emoji-id="5368324170671202286">🧾</tg-emoji> (Buyer) Submit payment proof\n` +
-      `  /admins  — <tg-emoji emoji-id="5368324170671202286">⚜️</tg-emoji> Show official admins list\n` +
-      `  /menu    — <tg-emoji emoji-id="5368324170671202286">📋</tg-emoji> Show menu`,
+      `  /browse  — <tg-emoji emoji-id="5368324170671202287">🛒</tg-emoji> Browse active listings\n` +
+      `  /search &lt;keyword&gt; — <tg-emoji emoji-id="5368324170671202287">🔍</tg-emoji> Search listings\n` +
+      `  /paid &lt;id&gt;    — <tg-emoji emoji-id="5368324170671202293">🧾</tg-emoji> (Buyer) Submit payment proof\n` +
+      `  /admins  — <tg-emoji emoji-id="5368324170671202290">⚜️</tg-emoji> Show official admins list\n` +
+      `  /menu    — <tg-emoji emoji-id="5368324170671202289">📋</tg-emoji> Show menu`,
       { parse_mode: 'HTML' },
     );
     showMainMenu(msg.chat.id, user);
@@ -619,17 +619,17 @@ const initTelegramBot = () => {
   // -------- /admins --------
   bot.onText(/\/admins/, async (msg) => {
     const adminListText = 
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> <b>[ADMIN]</b> @SARIK_CR7\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> <b>[ADMIN]</b> @eFgarant\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> <b>[ADMIN]</b> @Kamolxuja19\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> <b>[ADMIN]</b> @cosmos19\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> <b>[ADMIN]</b> @ef_rasulov\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> <b>[ADMIN]</b> @eFadmin_uz\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> <b>[ADMIN]</b> @CR7_ISLAM07\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> <b>[ADMIN]</b> @Uz_efadmin\n\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🔖</tg-emoji> Save this channel and be careful not to be deceived by #CLON and #KID accounts. Be vigilant. <tg-emoji emoji-id="5368324170671202286">✅</tg-emoji> Original admins have more than one user.\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🛡️</tg-emoji> Save this post for yourself and check before trading with an admin. Don't realize it's a clone after you've been deceived (admins don't trade in groups!).\n` +
-      `<tg-emoji emoji-id="5368324170671202286">🔔</tg-emoji> Write to all admins now and save their contacts to avoid being deceived. <tg-emoji emoji-id="5368324170671202286">✅</tg-emoji>`;
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> <b>[ADMIN]</b> @SARIK_CR7\n` +
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> <b>[ADMIN]</b> @eFgarant\n` +
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> <b>[ADMIN]</b> @Kamolxuja19\n` +
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> <b>[ADMIN]</b> @cosmos19\n` +
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> <b>[ADMIN]</b> @ef_rasulov\n` +
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> <b>[ADMIN]</b> @eFadmin_uz\n` +
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> <b>[ADMIN]</b> @CR7_ISLAM07\n` +
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> <b>[ADMIN]</b> @Uz_efadmin\n\n` +
+      `<tg-emoji emoji-id="5368324170671202289">🔖</tg-emoji> Save this channel and be careful not to be deceived by #CLON and #KID accounts. Be vigilant. <tg-emoji emoji-id="5368324170671202290">✅</tg-emoji> Original admins have more than one user.\n` +
+      `<tg-emoji emoji-id="5368324170671202290">🛡️</tg-emoji> Save this post for yourself and check before trading with an admin. Don't realize it's a clone after you've been deceived (admins don't trade in groups!).\n` +
+      `<tg-emoji emoji-id="5368324170671202289">🔔</tg-emoji> Write to all admins now and save their contacts to avoid being deceived. <tg-emoji emoji-id="5368324170671202290">✅</tg-emoji>`;
 
     bot.sendMessage(msg.chat.id, adminListText, { parse_mode: 'HTML' });
   });
