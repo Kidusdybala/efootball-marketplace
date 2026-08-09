@@ -502,7 +502,16 @@ const initTelegramBot = () => {
       } catch (e) {
         banks = [];
       }
-      const summary = `You selected: ${listing.title}\n\nPlease select your bank:`;
+      let summary = `You selected: <b>${listing.title}</b>\n\nPlease select your payment method:`;
+      if (banks.some(b => b.emoji_id)) {
+        summary += '\n\n';
+        banks.forEach((b) => {
+          if (b.emoji_id) {
+            summary += `<tg-emoji emoji-id="${b.emoji_id}">👉</tg-emoji> <b>${b.name}</b>\n`;
+          }
+        });
+      }
+      
       if (!banks.length) {
         bot.sendMessage(msg.chat.id,
           summary +
@@ -755,6 +764,15 @@ const initTelegramBot = () => {
   bot.on('message', async (msg) => {
     if (msg.photo || msg.document) return;
     const chatId = msg.chat.id;
+
+    if (isAdminTelegramId(msg.from.id) && msg.entities) {
+      const customEmojis = msg.entities.filter(e => e.type === 'custom_emoji');
+      if (customEmojis.length > 0) {
+        const ids = customEmojis.map(e => e.custom_emoji_id).join('\n');
+        bot.sendMessage(msg.chat.id, `Custom Emoji IDs:\n<code>${ids}</code>`, { parse_mode: 'HTML' });
+      }
+    }
+
     const text = msg.text;
     if (!text) return;
     if (text.startsWith('/')) return;
