@@ -56,51 +56,13 @@ const getSession = (chatId) => {
 };
 const clearSession = (chatId) => userSessions.delete(String(chatId));
 
-const statusEmoji = (s) => ({
-  available: 'AVAILABLE', reserved: 'RESERVED', sold: 'SOLD',
-  pending_review: 'PENDING REVIEW', rejected: 'REJECTED', deleted: 'DELETED',
-  approved: 'APPROVED', waiting_escrow: 'DEAL AGREED',
-  paid_submitted: 'PAID (PROOF)', creds_submitted: 'CREDS IN',
-  released: 'RELEASED',
-})[s] || String(s).toUpperCase();
-
-const escrowStatusBadge = (l) => {
-  const parts = [];
-  if (l.paidAt || l.status === 'paid_submitted' || l.status === 'creds_submitted') parts.push('PAID: ' + (l.paidAt ? 'YES' : 'NO'));
-  if (l.paymentVerifiedAt) parts.push('VERIFIED: YES');
-  if (l.credentialsSubmittedAt || l.status === 'creds_submitted') parts.push('CREDS: ' + (l.credentialsSubmittedAt ? 'YES' : 'NO'));
-  if (l.releasedAt) parts.push('RELEASED');
-  if (l.sellerPaidAt) parts.push('SELLER PAID');
-  return parts.length ? parts.join(' | ') : 'Waiting for buyer/seller...';
-};
+const { statusEmoji, escrowStatusBadge, formatListingCard, formatChannelListingCard } = require('./formatters');
 
 const PLATFORMS = ['Android', 'iOS', 'Steam', 'PlayStation', 'Xbox', 'PC', 'Cross-Platform'];
 
 const shortId = (id) => String(id).slice(-8);
 
-const formatListingCard = (listing, seller) => {
-  const lines = [];
-  lines.push(`${statusEmoji(listing.status)}`);
-  lines.push(`<b>${listing.title}</b>`);
-  lines.push(`Price: ${formatMoney(listing.price, listing.currency)}${listing.negotiable ? ' (Negotiable)' : ''}`);
-  lines.push(`Platform: ${listing.platform}`);
-  if (listing.overall) lines.push(`Team Overall: ${listing.overall}`);
-  if (listing.teamName) lines.push(`Team: ${listing.teamName}`);
-  if (listing.featuredPlayers?.length) lines.push(`Featured: ${listing.featuredPlayers.slice(0, 3).join(', ')}`);
-  if (seller) {
-    const verified = seller.isVerified ? ' [VERIFIED]' : '';
-    lines.push(`\nSeller: @${seller.username}${verified}`);
-  }
-  lines.push(`\nDescription:`);
-  lines.push(`${listing.description}`);
-  lines.push(`\nListed: ${new Date(listing.createdAt).toLocaleDateString()}`);
-  lines.push(`Listing ID: <code>${shortId(listing._id)}</code>`);
-  return lines.join('\n');
-};
 
-const formatChannelListingCard = (listing) => {
-  return `Price: <b>${formatMoney(listing.price, listing.currency)}</b>`;
-};
 
 
 const mainMenuKeyboard = (user) => {
@@ -155,7 +117,7 @@ const escrowAdminKeyboard = (listing) => {
     rows.push([{ text: 'RELEASE TO BUYER & WIPE CREDS', callback_data: `release_${lid}` }]);
   }
   if (listing.releasedAt && !listing.sellerPaidAt) {
-    rows.push([{ text: 'MARK SELLER PAID 💸', callback_data: `mark_seller_paid_${lid}` }]);
+    rows.push([{ text: 'MARK SELLER PAID <tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji>', callback_data: `mark_seller_paid_${lid}` }]);
   }
   if (!listing.releasedAt) {
     rows.push([{ text: 'Cancel Escrow', callback_data: `cancel_escrow_${lid}` }]);
@@ -354,7 +316,7 @@ const browseAndShow = async (chatId, filters = {}, offset = 0) => {
     });
   }
   if (listings.length >= 5) {
-    bot.sendMessage(chatId, '💡 Use <code>/browse</code> to see more or <code>/search &lt;keyword&gt;</code>', { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, '<tg-emoji emoji-id="6100340203119971469">🔥</tg-emoji> Use <code>/browse</code> to see more or <code>/search &lt;keyword&gt;</code>', { parse_mode: 'HTML' });
   }
 };
 
@@ -367,7 +329,7 @@ const showMyListings = async (chatId, user) => {
       adminKb.push([{ text: '🗑️ Delete Listing', callback_data: `delete_listing_${l._id}` }]);
     }
     bot.sendMessage(chatId,
-      `<b>${statusEmoji(l.status)}</b>\n🏷️ ${l.title}\n💸 ${formatMoney(l.price, l.currency)} | 📱 ${l.platform}\n\n` +
+      `<b>${statusEmoji(l.status)}</b>\n<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${l.title}\n<tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> ${formatMoney(l.price, l.currency)} | <tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${l.platform}\n\n` +
       `ID: <code>${shortId(l._id)}</code>\n${escrowStatusBadge(l)}`,
       { parse_mode: 'HTML', reply_markup: adminKb.length ? { inline_keyboard: adminKb } : undefined },
     );
@@ -399,8 +361,8 @@ const notifyAdminEscrowUpdate = async (listing, actionNote) => {
 
   const text =
     `🔔 <b>ESCROW UPDATE</b>\n\n` +
-    `🏷️ ${listing.title}\n` +
-    `💸 Agreed Price: <b>${formatMoney(listing.price, listing.currency)}</b>\n` +
+    `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${listing.title}\n` +
+    `<tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> Agreed Price: <b>${formatMoney(listing.price, listing.currency)}</b>\n` +
     `Listing ID: <code>${shortId(listing._id)}</code>\n\n` +
     `👤 Seller: @${seller?.username || 'N/A'} (ID: <code>${seller?.telegramId || '?'}</code>)\n` +
     `🛒 Buyer: @${buyer?.username || 'N/A'} (ID: <code>${buyer?.telegramId || '?'}</code>)\n\n` +
@@ -411,7 +373,7 @@ const notifyAdminEscrowUpdate = async (listing, actionNote) => {
   if (listing.paidReceiptFileId) {
     for (const adminChatId of adminChatIds) {
       try {
-        const opts = { caption: `🧾 PAYMENT RECEIPT for Listing #${shortId(listing._id)}`, parse_mode: 'HTML' };
+        const opts = { caption: `<tg-emoji emoji-id="5960632377339285724">🏦</tg-emoji> PAYMENT RECEIPT for Listing #${shortId(listing._id)}`, parse_mode: 'HTML' };
         if (listing.paidReceiptType === 'photo') await bot.sendPhoto(adminChatId, listing.paidReceiptFileId, opts);
         else if (listing.paidReceiptType === 'document') await bot.sendDocument(adminChatId, listing.paidReceiptFileId, opts);
       } catch (e) { /* ignore */ }
@@ -424,7 +386,7 @@ const notifyAdminEscrowUpdate = async (listing, actionNote) => {
         if (creds && !listing.credentialsWiped) {
           const dec = creds.getAllDecrypted();
           const credsText =
-            `🔐 ACCOUNT CREDENTIALS (Preview for Admin)\n\n` +
+            `<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> ACCOUNT CREDENTIALS (Preview for Admin)\n\n` +
             `📧 Email: <code>${dec.email || 'N/A'}</code>\n` +
             `🔑 Password: <tg-spoiler>${dec.password || 'N/A'}</tg-spoiler>\n` +
             (dec.additionalInfo ? `📋 Extra: <tg-spoiler>${dec.additionalInfo}</tg-spoiler>\n` : '') +
@@ -474,7 +436,7 @@ const releaseEscrow = async (adminTgId, listingId) => {
   if (buyerChatId) {
     bot.sendMessage(buyerChatId,
       `🎉 <b>ESCROW RELEASED!</b>\n\n` +
-      `🏷️ Listing: <b>${listing.title}</b>\n` +
+      `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> Listing: <b>${listing.title}</b>\n` +
       `Price paid: <b>${formatMoney(listing.price, listing.currency)}</b> (incl. fees)\n\n` +
       `Here are your account credentials (save them NOW — they've been WIPED from our database):\n\n` +
       `📧 Email: <code>${decrypted.email || 'N/A'}</code>\n` +
@@ -490,7 +452,7 @@ const releaseEscrow = async (adminTgId, listingId) => {
 
     bot.sendMessage(sellerChatId,
       `✅ <b>BUYER RECEIVED ACCOUNT — PAYOUT PENDING</b>\n\n` +
-      `🏷️ Listing: <b>${listing.title}</b>\n` +
+      `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> Listing: <b>${listing.title}</b>\n` +
       `You will receive: <b>${formatMoney(sellerGets, listing.currency)}</b>\n\n` +
       `Admin verified payment and released the account to the buyer. Admin will now send your payout. You will get a confirmation here once admin marks you as PAID.`,
       { parse_mode: 'HTML' },
@@ -589,7 +551,7 @@ const initTelegramBot = () => {
       `  /sell    — <tg-emoji emoji-id="5368324170671202286">➕</tg-emoji> List a new account for sale\n` +
       `  /browse  — <tg-emoji emoji-id="5368324170671202287">🛒</tg-emoji> Browse active listings\n` +
       `  /search &lt;keyword&gt; — <tg-emoji emoji-id="5368324170671202287">🔍</tg-emoji> Search listings\n` +
-      `  /paid &lt;id&gt;    — <tg-emoji emoji-id="5368324170671202293">🧾</tg-emoji> (Buyer) Submit payment proof\n` +
+      `  /paid &lt;id&gt;    — <tg-emoji emoji-id="5368324170671202293"><tg-emoji emoji-id="5960632377339285724">🏦</tg-emoji></tg-emoji> (Buyer) Submit payment proof\n` +
       `  /admins  — <tg-emoji emoji-id="5368324170671202290">⚜️</tg-emoji> Show official admins list\n` +
       `  /menu    — <tg-emoji emoji-id="5368324170671202289">📋</tg-emoji> Show menu`,
       { parse_mode: 'HTML' },
@@ -653,7 +615,7 @@ const initTelegramBot = () => {
     const arg = match[1]?.trim();
     if (!arg) {
       setSession(chatId, 'paid_listing_id', {});
-      bot.sendMessage(chatId, '💳 <b>Submit Payment Proof</b>\n\nStep 1/2: Enter the <b>Listing ID</b> (the short code, e.g. <code>a3f21b90</code>):', { parse_mode: 'HTML' });
+      bot.sendMessage(chatId, '<tg-emoji emoji-id="5961015849199342153">🏦</tg-emoji> <b>Submit Payment Proof</b>\n\nStep 1/2: Enter the <b>Listing ID</b> (the short code, e.g. <code>a3f21b90</code>):', { parse_mode: 'HTML' });
       return;
     }
     const listing = await findListingByShortOrFullId(arg);
@@ -664,7 +626,7 @@ const initTelegramBot = () => {
     await listing.save();
     try { await updateChannelListingStatus(listing, '🟡 RESERVED'); } catch (e) { /* ignore */ }
     bot.sendMessage(chatId,
-      `💳 <b>Payment Proof - Step 2/2</b>\n\n` +
+      `<tg-emoji emoji-id="5961015849199342153">🏦</tg-emoji> <b>Payment Proof - Step 2/2</b>\n\n` +
       `Listing: <b>${listing.title}</b> (${formatMoney(listing.price, listing.currency)})\n\n` +
       `Now <b>send a photo or document</b> (screenshot/PDF) proving your payment to admin. Mobile money/Bank transfer/PayPal receipt — whatever works.`,
       { parse_mode: 'HTML' },
@@ -678,7 +640,7 @@ const initTelegramBot = () => {
     const arg = match[1]?.trim();
     if (!arg) {
       setSession(chatId, 'deliver_listing_id', {});
-      bot.sendMessage(chatId, '🔐 <b>Deliver Credentials</b>\n\nStep 1/4: Enter the <b>Listing ID</b>:', { parse_mode: 'HTML' });
+      bot.sendMessage(chatId, '<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> <b>Deliver Credentials</b>\n\nStep 1/4: Enter the <b>Listing ID</b>:', { parse_mode: 'HTML' });
       return;
     }
     const listing = await findListingByShortOrFullId(arg);
@@ -687,7 +649,7 @@ const initTelegramBot = () => {
       return bot.sendMessage(chatId, '❌ Only the seller of this listing can deliver credentials.');
     }
     setSession(chatId, 'deliver_email', { listingId: String(listing._id) });
-    bot.sendMessage(chatId, `🔐 <b>Deliver Credentials for "${listing.title}"</b> (2/4)\n\nSend the account <b>EMAIL</b>:`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> <b>Deliver Credentials for "${listing.title}"</b> (2/4)\n\nSend the account <b>EMAIL</b>:`, { parse_mode: 'HTML' });
   });
 
   // -------- /admin --------
@@ -713,7 +675,7 @@ const initTelegramBot = () => {
       const pendings = await Listing.find({ status: 'pending_review' }).populate('sellerId').limit(10);
       for (const l of pendings) {
         bot.sendMessage(chatId,
-          `⏳ PENDING: <b>${l.title}</b>\nFrom @${l.sellerId?.username || '?'}\n💸 ${formatMoney(l.price, l.currency)} | ID: <code>${shortId(l._id)}</code>`,
+          `⏳ PENDING: <b>${l.title}</b>\nFrom @${l.sellerId?.username || '?'}\n<tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> ${formatMoney(l.price, l.currency)} | ID: <code>${shortId(l._id)}</code>`,
           { parse_mode: 'HTML', reply_markup: approveRejectKeyboard(l._id) },
         );
       }
@@ -722,7 +684,7 @@ const initTelegramBot = () => {
       for (const l of waitingEscrow) {
         bot.sendMessage(chatId,
           `🤝 ESCROW #${shortId(l._id)} <b>${l.title}</b>\n` +
-          `💸 ${formatMoney(l.price, l.currency)} | ${escrowStatusBadge(l)}\n` +
+          `<tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> ${formatMoney(l.price, l.currency)} | ${escrowStatusBadge(l)}\n` +
           `@${l.sellerId?.username || '?'} → @${l.escrowBuyerId?.username || '?'}`,
           { parse_mode: 'HTML', reply_markup: escrowAdminKeyboard(l) },
         );
@@ -762,7 +724,7 @@ const initTelegramBot = () => {
       await listing.save();
       clearSession(chatId);
       bot.sendMessage(chatId, '✅ Payment proof RECEIVED. Sent to admins for verification.\n\nOnce admin verifies payment, they will release the account details to you here in the bot.', { parse_mode: 'HTML' });
-      notifyAdminEscrowUpdate(listing, `💳 Buyer @${user.username || '?'} just uploaded payment proof (photo).`);
+      notifyAdminEscrowUpdate(listing, `<tg-emoji emoji-id="5961015849199342153">🏦</tg-emoji> Buyer @${user.username || '?'} just uploaded payment proof (photo).`);
       return;
     }
   });
@@ -784,7 +746,7 @@ const initTelegramBot = () => {
       await listing.save();
       clearSession(chatId);
       bot.sendMessage(chatId, '✅ Payment proof RECEIVED. Sent to admins.\n\nOnce admin verifies payment, they will release the account details to you here in the bot.', { parse_mode: 'HTML' });
-      notifyAdminEscrowUpdate(listing, `💳 Buyer @${user.username || '?'} just uploaded payment proof (document: ${doc.file_name || 'receipt'}).`);
+      notifyAdminEscrowUpdate(listing, `<tg-emoji emoji-id="5961015849199342153">🏦</tg-emoji> Buyer @${user.username || '?'} just uploaded payment proof (document: ${doc.file_name || 'receipt'}).`);
       return;
     }
   });
@@ -816,7 +778,7 @@ const initTelegramBot = () => {
         try { await updateChannelListingStatus(listing, '🟡 RESERVED'); } catch (e) { /* ignore */ }
         setSession(chatId, 'paid_receipt_upload', { listingId: String(listing._id) });
         bot.sendMessage(chatId,
-          `💳 <b>Payment Proof</b>\n\nListing: <b>${listing.title}</b> (${formatMoney(listing.price, listing.currency)})\n\n` +
+          `<tg-emoji emoji-id="5961015849199342153">🏦</tg-emoji> <b>Payment Proof</b>\n\nListing: <b>${listing.title}</b> (${formatMoney(listing.price, listing.currency)})\n\n` +
           `Now send a photo or document of your payment receipt.`,
           { parse_mode: 'HTML' },
         );
@@ -830,21 +792,21 @@ const initTelegramBot = () => {
           return bot.sendMessage(chatId, '❌ Only the seller can deliver credentials for this listing.');
         }
         setSession(chatId, 'deliver_email', { listingId: String(listing._id) });
-        bot.sendMessage(chatId, `🔐 <b>Deliver Credentials for "${listing.title}"</b> (1/4)\n\nSend the account <b>EMAIL</b>:`, { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, `<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> <b>Deliver Credentials for "${listing.title}"</b> (1/4)\n\nSend the account <b>EMAIL</b>:`, { parse_mode: 'HTML' });
         return;
       }
       case 'deliver_email':
         if (!text.includes('@')) return bot.sendMessage(chatId, '❌ Invalid email.');
         d.email = text;
         setSession(chatId, 'deliver_password', d);
-        bot.sendMessage(chatId, '🔐 (2/4) Send the account <b>PASSWORD</b>: (encrypted & admin-only)', { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, '<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> (2/4) Send the account <b>PASSWORD</b>: (encrypted & admin-only)', { parse_mode: 'HTML' });
         return;
 
       case 'deliver_password':
         if (text.length < 3) return bot.sendMessage(chatId, '❌ Password too short.');
         d.password = text;
         setSession(chatId, 'deliver_extra', d);
-        bot.sendMessage(chatId, '🔐 (3/4) Send any extra info: backup codes / 2FA seed / recovery email, or type <code>done</code>:', { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, '<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> (3/4) Send any extra info: backup codes / 2FA seed / recovery email, or type <code>done</code>:', { parse_mode: 'HTML' });
         return;
 
       case 'deliver_extra': {
@@ -870,7 +832,7 @@ const initTelegramBot = () => {
           `✅ Credentials RECEIVED and encrypted. Sent to admin.\n\n` +
           `Once the buyer submits payment proof and admin verifies the payment actually arrived, admin will release the credentials to the buyer and confirm to you.`,
         );
-        notifyAdminEscrowUpdate(listing, `🔐 Seller @${user.username || '?'} just submitted account credentials.`);
+        notifyAdminEscrowUpdate(listing, `<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> Seller @${user.username || '?'} just submitted account credentials.`);
         return;
       }
       case 'contact_admin_message': {
@@ -918,7 +880,7 @@ const initTelegramBot = () => {
         session.data.platform = platform;
         setSession(chatId, 'create_overall', session.data);
         answer();
-        bot.sendMessage(chatId, '⚡ <b>Step 4/8</b>\n\nEnter team overall rating as a number (e.g. <code>4800</code>), or type <code>skip</code>:', { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, '<tg-emoji emoji-id="6100340203119971469">🔥</tg-emoji> <b>Step 4/8</b>\n\nEnter team overall rating as a number (e.g. <code>4800</code>), or type <code>skip</code>:', { parse_mode: 'HTML' });
         return;
       }
       if (raw.startsWith('neg_')) {
@@ -928,7 +890,7 @@ const initTelegramBot = () => {
         setSession(chatId, 'create_creds_email', session.data);
         answer();
         bot.sendMessage(chatId,
-          `🔐 <b>Now enter the account credentials</b> (1/3)\n\n` +
+          `<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> <b>Now enter the account credentials</b> (1/3)\n\n` +
           `These will be encrypted with AES-256-GCM in the database. Only admin can decrypt them. They will be permanently DELETED from the database after escrow release.\n\n` +
           `Step 1: Send the account <b>EMAIL</b>:`,
           { parse_mode: 'HTML' },
@@ -951,7 +913,7 @@ const initTelegramBot = () => {
         setSession(chatId, 'paid_receipt_upload', { listingId: String(listing._id) });
         answer('Upload your receipt now');
         bot.sendMessage(chatId,
-          `💳 <b>Upload Receipt</b>\n\n` +
+          `<tg-emoji emoji-id="5961015849199342153">🏦</tg-emoji> <b>Upload Receipt</b>\n\n` +
           `Listing: <b>${listing.title}</b> (${formatMoney(listing.price, listing.currency)})\n` +
           `Listing ID: <code>${shortId(listing._id)}</code>\n\n` +
           `Now send a <b>photo</b> or <b>document</b> of your payment receipt.`,
@@ -1032,8 +994,8 @@ const initTelegramBot = () => {
           const adminFee = listing.adminFee !== undefined ? listing.adminFee : listing.price * LEGACY_SERVICE_FEE_RATE;
           const sellerGets = listing.sellerPrice !== undefined ? listing.sellerPrice : listing.price - adminFee;
           bot.sendMessage(sellerChatId,
-            `💸 <b>PAYOUT SENT</b>\n\n` +
-            `🏷️ Listing: <b>${listing.title}</b>\n` +
+            `<tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> <b>PAYOUT SENT</b>\n\n` +
+            `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> Listing: <b>${listing.title}</b>\n` +
             `You received: <b>${formatMoney(sellerGets, listing.currency)}</b>\n\n` +
             `✅ Admin has marked your payout as completed. Thank you for using AuraShop.`,
             { parse_mode: 'HTML' },
@@ -1043,8 +1005,8 @@ const initTelegramBot = () => {
           bot.sendMessage(buyerChatId, '✅ Deal completed. Thank you for buying on AuraShop!');
         }
         edit(
-          `💸 <b>SELLER PAID — DEAL CLOSED</b>\n\n` +
-          `🏷️ ${listing.title} | 💸 ${formatMoney(listing.price, listing.currency)}\n` +
+          `<tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> <b>SELLER PAID — DEAL CLOSED</b>\n\n` +
+          `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${listing.title} | <tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> ${formatMoney(listing.price, listing.currency)}\n` +
           `Buyer: @${listing.escrowBuyerId?.username || '?'}\n` +
           `Seller: @${listing.sellerId?.username || '?'}\n\n` +
           `✅ Seller payout marked complete.\n✅ Listing status set to SOLD.`,
@@ -1062,7 +1024,7 @@ const initTelegramBot = () => {
         edit(
           `<s>${(cb.message?.text || '').split('🆕 <b>NEW LISTING PENDING REVIEW</b>')[0] || ''}</s>\n` +
           `✅ <b>LISTING APPROVED & POSTED TO CHANNEL</b>\n` +
-          `🏷️ ${listing.title} | 💸 ${formatMoney(listing.price, listing.currency)} | 📱 ${listing.platform}\n` +
+          `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${listing.title} | <tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> ${formatMoney(listing.price, listing.currency)} | <tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${listing.platform}\n` +
           `Posted: ${process.env.TELEGRAM_CHANNEL_ID || 'Channel'} | ID: <code>${shortId(listing._id)}</code>`,
           { reply_markup: undefined, disable_web_page_preview: true },
         );
@@ -1070,7 +1032,7 @@ const initTelegramBot = () => {
         if (sellerChatId) {
           bot.sendMessage(sellerChatId,
             `🎉 <b>YOUR LISTING IS LIVE!</b>\n\n` +
-            `🏷️ <b>${listing.title}</b> | ${formatMoney(listing.price, listing.currency)} | ${listing.platform}\n\n` +
+            `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> <b>${listing.title}</b> | ${formatMoney(listing.price, listing.currency)} | ${listing.platform}\n\n` +
             `Posted to: ${process.env.TELEGRAM_CHANNEL_ID || 'Market Channel'}\n` +
             `Listing ID: <code>${shortId(listing._id)}</code>\n\n` +
             `Buyers will click BUY from the channel and get payment instructions in the bot.\n\n` +
@@ -1107,7 +1069,7 @@ const initTelegramBot = () => {
         if (!res.ok) { edit(`❌ Release failed: ${res.err}\n\nListing ID: <code>${shortId(lid)}</code>`, { reply_markup: undefined }); return; }
         edit(
           `🎉 <b>ESCROW RELEASED & CREDS WIPED FROM DB</b>\n\n` +
-          `🏷️ ${res.listing.title} | 💸 ${formatMoney(res.listing.price, res.listing.currency)}\n` +
+          `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${res.listing.title} | <tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> ${formatMoney(res.listing.price, res.listing.currency)}\n` +
           `Buyer: @${res.listing.escrowBuyerId?.username || '?'}\n` +
           `Seller: @${res.listing.sellerId?.username || '?'}\n\n` +
           `✅ Credentials sent to buyer.\n✅ Seller notified of release.\n✅ Credentials document DELETED from MongoDB.\n✅ Channel post updated to SOLD.`,
@@ -1163,7 +1125,7 @@ const initTelegramBot = () => {
         case 'help':
           answer();
           bot.sendMessage(chatId,
-            `💡 <b>AuraShop Commands</b>\n\n` +
+            `<tg-emoji emoji-id="6100340203119971469">🔥</tg-emoji> <b>AuraShop Commands</b>\n\n` +
             `<b>Everyone:</b>\n` +
             `  /start    — Welcome + menu\n` +
             `  /menu     — Main menu\n` +
