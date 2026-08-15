@@ -23,7 +23,7 @@ const formatListingCard = (listing, seller) => {
   const lines = [];
   lines.push(`${statusEmoji(listing.status)}`);
   lines.push(`<b>${listing.title}</b>`);
-  lines.push(`<tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> <b>Price:</b> ${formatMoney(listing.price, listing.currency)}${listing.negotiable ? ' <i>(Negotiable)</i>' : ''}`);
+  lines.push(`<tg-emoji emoji-id="6100340203119971469">🏦</tg-emoji> <b>Price:</b> ${formatMoney(listing.price, listing.currency)}${listing.negotiable ? ' <i>(Negotiable)</i>' : ''}`);
   lines.push(`<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> <b>Platform:</b> ${listing.platform}`);
   if (listing.overall) lines.push(`<tg-emoji emoji-id="5368324170671202294">⭐️</tg-emoji> <b>Team Overall:</b> ${listing.overall}`);
   if (listing.teamName) lines.push(`<tg-emoji emoji-id="5368324170671202294">🛡️</tg-emoji> <b>Team:</b> ${listing.teamName}`);
@@ -40,7 +40,7 @@ const formatListingCard = (listing, seller) => {
 };
 
 const formatChannelListingCard = (listing) => {
-  return `<tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> <b>Price:</b> ${formatMoney(listing.price, listing.currency)}`;
+  return `<tg-emoji emoji-id="6100340203119971469">🏦</tg-emoji> <b>Price:</b> ${formatMoney(listing.price, listing.currency)}`;
 };
 
 module.exports = {

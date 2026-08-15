@@ -524,9 +524,9 @@ const initTelegramBot = () => {
             banks[i].icon_custom_emoji_id !== 'ENTER_ID_HERE' && 
             banks[i].icon_custom_emoji_id.trim() !== '') {
           // Add custom emoji to text
-          summary += `<tg-emoji emoji-id="${banks[i].icon_custom_emoji_id}">▪️</tg-emoji> <b>${banks[i].name}</b>\n`;
+          summary += `<tg-emoji emoji-id="${banks[i].icon_custom_emoji_id}">-</tg-emoji> <b>${banks[i].name}</b>\n`;
         } else {
-          summary += `▪️ <b>${banks[i].name}</b>\n`;
+          summary += `- <b>${banks[i].name}</b>\n`;
         }
         rows.push([btn]);
       }
@@ -563,12 +563,12 @@ const initTelegramBot = () => {
       `<tg-emoji emoji-id="6102756813713706029">🛡️</tg-emoji> The SAFEST way to buy/sell EFootball accounts with escrow protection.\n\n` +
       `<tg-emoji emoji-id="6100453551601881338">📣</tg-emoji> <b>Official Channel:</b> ${process.env.TELEGRAM_CHANNEL_ID || '(set TELEGRAM_CHANNEL_ID)'}\n\n` +
       `<tg-emoji emoji-id="6104818848987358154">📌</tg-emoji> <b>Main Commands:</b>\n` +
-      `  /sell    — ➕ List a new account for sale\n` +
-      `  /browse  — 🛒 Browse active listings\n` +
-      `  /search &lt;keyword&gt; — 🔍 Search listings\n` +
-      `  /paid &lt;id&gt;    — 🏦 (Buyer) Submit payment proof\n` +
-      `  /admins  — ⚜️ Show official admins list\n` +
-      `  /menu    — 📋 Show menu`,
+      `  /sell    — List a new account for sale\n` +
+      `  /browse  — Browse active listings\n` +
+      `  /search &lt;keyword&gt; — Search listings\n` +
+      `  /paid &lt;id&gt;    — (Buyer) Submit payment proof\n` +
+      `  /admins  — Show official admins list\n` +
+      `  /menu    — Show menu`,
       { parse_mode: 'HTML' },
     );
     showMainMenu(msg.chat.id, user);
