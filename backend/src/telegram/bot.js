@@ -495,22 +495,16 @@ const initTelegramBot = () => {
         return bot.sendMessage(msg.chat.id, '⏳ This listing is currently being processed by another buyer. Please contact admin.');
       }
       const priceStr = formatMoney(listing.price, listing.currency);
+      const PaymentMethod = require('../models/PaymentMethod');
       let banks = [];
       try {
-        const raw = (process.env.PAYMENT_INSTRUCTIONS || '').trim();
-        banks = raw ? JSON.parse(raw) : [];
+        banks = await PaymentMethod.find({ isActive: true }).sort({ createdAt: 1 });
       } catch (e) {
+        console.error('Error fetching payment methods:', e);
         banks = [];
       }
+      
       let summary = `You selected: <b>${listing.title}</b>\n\nPlease select your payment method:`;
-      if (banks.some(b => b.emoji_id)) {
-        summary += '\n\n';
-        banks.forEach((b) => {
-          if (b.emoji_id) {
-            summary += `<tg-emoji emoji-id="${b.emoji_id}">👉</tg-emoji> <b>${b.name}</b>\n`;
-          }
-        });
-      }
       
       if (!banks.length) {
         bot.sendMessage(msg.chat.id,
@@ -522,9 +516,17 @@ const initTelegramBot = () => {
         );
         return;
       }
+      
       const rows = [];
       for (let i = 0; i < banks.length; i++) {
-        rows.push([{ text: banks[i].name, callback_data: `bank_${i}` }]);
+        const btn = { text: banks[i].name, callback_data: banks[i].callback_data };
+        // Only add icon_custom_emoji_id if it's a valid non-empty string (not placeholder text)
+        if (banks[i].icon_custom_emoji_id && 
+            banks[i].icon_custom_emoji_id !== 'ENTER_ID_HERE' && 
+            banks[i].icon_custom_emoji_id.trim() !== '') {
+          btn.icon_custom_emoji_id = banks[i].icon_custom_emoji_id;
+        }
+        rows.push([btn]);
       }
       rows.push([{ text: '🔙 Back', callback_data: `delete_msg` }]);
       setSession(msg.chat.id, 'buy_listing', { listingId: String(listing._id) });
