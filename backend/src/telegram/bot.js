@@ -504,12 +504,12 @@ const initTelegramBot = () => {
         banks = [];
       }
       
-      let summary = `You selected: <b>${listing.title}</b>\n\nPlease select your payment method:`;
+      let summary = `You selected: <b>${listing.title}</b>\n\n<b>Please select your payment method:</b>\n\n`;
       
       if (!banks.length) {
         bot.sendMessage(msg.chat.id,
           summary +
-          `\n\n<b>ሕጋዊ ማስጠንቀቂያ</b>\n` +
+          `<b>ሕጋዊ ማስጠንቀቂያ</b>\n` +
           `በክፍያ ይህን ያረጋግጡ፡ ከ18 አመት በላይ ነዎት እና የእኛን ውሎች እና መመሪያዎች ይቀበላሉ፡\n\n` +
           `ለክፍያ ዝርዝር ለማግኘት አስተዳዳሪውን ያነጋግሩ።`,
           { parse_mode: 'HTML' },
@@ -520,14 +520,18 @@ const initTelegramBot = () => {
       const rows = [];
       for (let i = 0; i < banks.length; i++) {
         const btn = { text: banks[i].name, callback_data: banks[i].callback_data };
-        // Only add icon_custom_emoji_id if it's a valid non-empty string (not placeholder text)
         if (banks[i].icon_custom_emoji_id && 
             banks[i].icon_custom_emoji_id !== 'ENTER_ID_HERE' && 
             banks[i].icon_custom_emoji_id.trim() !== '') {
-          btn.icon_custom_emoji_id = banks[i].icon_custom_emoji_id;
+          // Add custom emoji to text
+          summary += `<tg-emoji emoji-id="${banks[i].icon_custom_emoji_id}">▪️</tg-emoji> <b>${banks[i].name}</b>\n`;
+        } else {
+          summary += `▪️ <b>${banks[i].name}</b>\n`;
         }
         rows.push([btn]);
       }
+      summary += `\n<i>Tap a button below to proceed ⬇️</i>`;
+      
       rows.push([{ text: '🔙 Back', callback_data: `delete_msg` }]);
       setSession(msg.chat.id, 'buy_listing', { listingId: String(listing._id) });
       bot.sendMessage(msg.chat.id, summary, {
@@ -553,18 +557,18 @@ const initTelegramBot = () => {
       return;
     }
 
-    const adminBadge = isAdmin ? '\n🛡️ <b>ADMIN ACCOUNT</b>' : '';
+    const adminBadge = isAdmin ? '\n<tg-emoji emoji-id="6102638354220716294">🛡️</tg-emoji> <b>ADMIN ACCOUNT</b>' : '';
     bot.sendMessage(msg.chat.id,
-      `👋 Welcome <b>${user.firstName || user.username}</b> to <b>AuraShop EFootball Marketplace!</b>${adminBadge}\n\n` +
-      `<tg-emoji emoji-id="5368324170671202294">🛡️</tg-emoji> The SAFEST way to buy/sell EFootball accounts with escrow protection.\n\n` +
-      `<tg-emoji emoji-id="5368324170671202289">📣</tg-emoji> <b>Official Channel:</b> ${process.env.TELEGRAM_CHANNEL_ID || '(set TELEGRAM_CHANNEL_ID)'}\n\n` +
-      `<tg-emoji emoji-id="5368324170671202289">📌</tg-emoji> <b>Main Commands:</b>\n` +
-      `  /sell    — <tg-emoji emoji-id="5368324170671202286">➕</tg-emoji> List a new account for sale\n` +
-      `  /browse  — <tg-emoji emoji-id="5368324170671202287">🛒</tg-emoji> Browse active listings\n` +
-      `  /search &lt;keyword&gt; — <tg-emoji emoji-id="5368324170671202287">🔍</tg-emoji> Search listings\n` +
-      `  /paid &lt;id&gt;    — <tg-emoji emoji-id="5368324170671202293"><tg-emoji emoji-id="5960632377339285724">🏦</tg-emoji></tg-emoji> (Buyer) Submit payment proof\n` +
-      `  /admins  — <tg-emoji emoji-id="5368324170671202290">⚜️</tg-emoji> Show official admins list\n` +
-      `  /menu    — <tg-emoji emoji-id="5368324170671202289">📋</tg-emoji> Show menu`,
+      `<tg-emoji emoji-id="6100651927551348857">👋</tg-emoji> Welcome <b>${user.firstName || user.username}</b> to <b>AuraShop EFootball Marketplace!</b>${adminBadge}\n\n` +
+      `<tg-emoji emoji-id="6102756813713706029">🛡️</tg-emoji> The SAFEST way to buy/sell EFootball accounts with escrow protection.\n\n` +
+      `<tg-emoji emoji-id="6100453551601881338">📣</tg-emoji> <b>Official Channel:</b> ${process.env.TELEGRAM_CHANNEL_ID || '(set TELEGRAM_CHANNEL_ID)'}\n\n` +
+      `<tg-emoji emoji-id="6104818848987358154">📌</tg-emoji> <b>Main Commands:</b>\n` +
+      `  /sell    — ➕ List a new account for sale\n` +
+      `  /browse  — 🛒 Browse active listings\n` +
+      `  /search &lt;keyword&gt; — 🔍 Search listings\n` +
+      `  /paid &lt;id&gt;    — 🏦 (Buyer) Submit payment proof\n` +
+      `  /admins  — ⚜️ Show official admins list\n` +
+      `  /menu    — 📋 Show menu`,
       { parse_mode: 'HTML' },
     );
     showMainMenu(msg.chat.id, user);
