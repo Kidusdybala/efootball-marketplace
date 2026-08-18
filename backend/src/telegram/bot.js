@@ -22,28 +22,42 @@ const calculateAdminFee = (sellerPrice) => {
 };
 
 const getOrCreateUser = async (tgUser, chatId) => {
-  let user = await User.findOne({ telegramId: String(tgUser.id) });
   const admin = isAdminTelegramId(tgUser.id);
-  if (!user) {
-    user = await User.create({
-      telegramId: String(tgUser.id),
-      username: tgUser.username || `tg_${tgUser.id}`,
-      firstName: tgUser.first_name,
-      lastName: tgUser.last_name,
-      telegramChatId: String(chatId),
-      role: admin ? 'admin' : 'buyer',
-      isVerified: admin,
-      preferences: { notifyTelegram: true, notifyEmail: false },
-    });
-  } else {
+  
+  const updateFields = async (user) => {
     if (tgUser.first_name) user.firstName = tgUser.first_name;
     if (tgUser.last_name) user.lastName = tgUser.last_name;
     if (tgUser.username) user.username = tgUser.username;
     user.telegramChatId = String(chatId);
     if (admin) { user.role = 'admin'; user.isVerified = true; }
     await user.save();
+    return user;
+  };
+
+  try {
+    let user = await User.findOne({ telegramId: String(tgUser.id) });
+    if (!user) {
+      user = await User.create({
+        telegramId: String(tgUser.id),
+        username: tgUser.username || `tg_${tgUser.id}`,
+        firstName: tgUser.first_name,
+        lastName: tgUser.last_name,
+        telegramChatId: String(chatId),
+        role: admin ? 'admin' : 'buyer',
+        isVerified: admin,
+        preferences: { notifyTelegram: true, notifyEmail: false },
+      });
+      return user;
+    }
+    return await updateFields(user);
+  } catch (error) {
+    if (error.code === 11000) {
+      // Race condition: another concurrent request just created this user
+      let user = await User.findOne({ telegramId: String(tgUser.id) });
+      if (user) return await updateFields(user);
+    }
+    throw error;
   }
-  return user;
 };
 
 const setSession = (chatId, state, data = {}) =>
