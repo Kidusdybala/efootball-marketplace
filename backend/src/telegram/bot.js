@@ -476,6 +476,17 @@ const initTelegramBot = () => {
   bot = new TelegramBot(token, { polling: true });
   console.log('🤖 Telegram bot running (MVP).');
 
+  bot.on('polling_error', (error) => {
+    if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+      console.warn('⚠️ Telegram Polling Conflict (409): Another instance is running. This is normal during deployments.');
+    } else {
+      console.error(`Telegram Polling Error: ${error.code} - ${error.message}`);
+    }
+  });
+
+  process.once('SIGINT', () => bot.stopPolling());
+  process.once('SIGTERM', () => bot.stopPolling());
+
   // -------- /start --------
   bot.onText(/\/start/, async (msg) => {
     const user = await getOrCreateUser(msg.from, msg.chat.id);
