@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Listing = require('../models/Listing');
 const AccountCredentials = require('../models/AccountCredentials');
 const { formatMoney } = require('../utils/money');
+const { setBot } = require('./botInstance');
 
 let bot = null;
 const userSessions = new Map();
@@ -496,6 +497,7 @@ const initTelegramBot = () => {
     return null;
   }
   bot = new TelegramBot(token, { polling: true });
+  setBot(bot);
   console.log('🤖 Telegram bot running (MVP).');
 
   bot.on('polling_error', (error) => {
@@ -1218,4 +1220,29 @@ const initTelegramBot = () => {
   return bot;
 };
 
-module.exports = { initTelegramBot };
+const sendTelegramNotification = async (chatId, text) => {
+  if (!bot) return null;
+  try {
+    return await bot.sendMessage(chatId, text, { parse_mode: 'HTML' });
+  } catch (err) {
+    console.error('sendTelegramNotification error:', err.message);
+    return null;
+  }
+};
+
+const relayMessageToTelegram = async (message) => {
+  if (!bot || !message) return false;
+  try {
+    const receiverTelegramId = message.receiverTelegramId;
+    if (!receiverTelegramId) return false;
+    const senderTelegramId = message.senderTelegramId;
+    const prefix = senderTelegramId ? `@${senderTelegramId}: ` : '';
+    await bot.sendMessage(receiverTelegramId, `${prefix}${message.content}`, { parse_mode: 'HTML' });
+    return true;
+  } catch (err) {
+    console.error('relayMessageToTelegram error:', err.message);
+    return false;
+  }
+};
+
+module.exports = { initTelegramBot, sendTelegramNotification, publishListingToChannel, restoreChannelListingButtons, updateChannelListingStatus, relayMessageToTelegram };

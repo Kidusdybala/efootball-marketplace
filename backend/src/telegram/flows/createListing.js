@@ -47,7 +47,7 @@ const finalizeCreateListingSimple = async (chatId, user, price, imageFileId, cre
     `Your listing has been sent to admin for review.\n` +
     `Listing ID: <code>${shortId(listing._id)}</code>`,
     { parse_mode: 'HTML' },
-  );
+  ).catch(() => {});
 
   const adminChatIds = getAdminChatIds();
   let caption = `NEW LISTING PENDING REVIEW\n\nFrom: @${seller.username}\nBuyer Pays: ${formatMoney(totalPrice)}\nSeller Gets: ${formatMoney(price)}\nCredentials: INCLUDED (encrypted)\nListing ID: ${shortId(listing._id)}`;
@@ -57,10 +57,10 @@ const finalizeCreateListingSimple = async (chatId, user, price, imageFileId, cre
       try {
         await bot.sendPhoto(adminChatId, imageFileId, { caption: caption, parse_mode: 'HTML', reply_markup: approveRejectKeyboard(listing._id) });
       } catch (e) {
-        bot.sendMessage(adminChatId, caption, { parse_mode: 'HTML', reply_markup: approveRejectKeyboard(listing._id) });
+        bot.sendMessage(adminChatId, caption, { parse_mode: 'HTML', reply_markup: approveRejectKeyboard(listing._id) }).catch(() => {});
       }
     } else {
-      bot.sendMessage(adminChatId, caption, { parse_mode: 'HTML', reply_markup: approveRejectKeyboard(listing._id) });
+      bot.sendMessage(adminChatId, caption, { parse_mode: 'HTML', reply_markup: approveRejectKeyboard(listing._id) }).catch(() => {});
     }
   }
 };

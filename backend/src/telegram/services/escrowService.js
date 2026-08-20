@@ -104,7 +104,7 @@ const releaseEscrow = async (adminTgId, listingId) => {
       (decrypted.additionalInfo ? `📋 Extra info: <tg-spoiler>${decrypted.additionalInfo}</tg-spoiler>\n` : '') +
       `\n⚠️ <b>IMPORTANT:</b> Change the password, set up your own 2FA, and update recovery email immediately.\nEnjoy the account!`,
       { parse_mode: 'HTML' },
-    );
+    ).catch(() => {});
   }
   if (sellerChatId) {
     const adminFee = listing.adminFee !== undefined ? listing.adminFee : listing.price * LEGACY_SERVICE_FEE_RATE;
@@ -116,7 +116,7 @@ const releaseEscrow = async (adminTgId, listingId) => {
       `You will receive: <b>${formatMoney(sellerGets, listing.currency)}</b>\n\n` +
       `Admin verified payment and released the account to the buyer. Admin will now send your payout. You will get a confirmation here once admin marks you as PAID.`,
       { parse_mode: 'HTML' },
-    );
+    ).catch(() => {});
   }
 
   try {
