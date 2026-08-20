@@ -1,4 +1,4 @@
-const TelegramBot = require('node-telegram-bot-api');
+const TelegramBot = require('node-telegram-bot-api').default;
 const User = require('../models/User');
 const Listing = require('../models/Listing');
 const AccountCredentials = require('../models/AccountCredentials');
