@@ -9,6 +9,14 @@ const userSessions = new Map();
 
 const parseCsv = (v) => (v || '').split(',').map(s => s.trim()).filter(Boolean);
 const uniq = (arr) => Array.from(new Set((arr || []).map(String).filter(Boolean)));
+const escapeHtml = (text) => {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+};
+
 const getAdminIds = () => uniq([...parseCsv(process.env.ADMIN_TELEGRAM_IDS), process.env.ADMIN_CHAT_ID]);
 const isAdminTelegramId = (id) => getAdminIds().includes(String(id));
 const getAdminChatIds = () => getAdminIds();
@@ -94,7 +102,7 @@ const mainMenuKeyboard = (user) => {
 const showMainMenu = (chatId, user) => {
   bot.sendMessage(chatId, '<tg-emoji emoji-id="5368324170671202286">✨</tg-emoji> <b>AuraShop Main Menu</b>\n\nChoose an option below or use a command:\n/menu /sell /browse /search /paid /admins /deliver', {
     parse_mode: 'HTML', reply_markup: mainMenuKeyboard(user),
-  });
+  }).catch(e => console.error("Send message error:", e));
 };
 
 const platformKeyboard = () => ({
@@ -584,7 +592,7 @@ const initTelegramBot = () => {
 
     const adminBadge = isAdmin ? '\n<tg-emoji emoji-id="6102638354220716294">🛡️</tg-emoji> <b>ADMIN ACCOUNT</b>' : '';
     bot.sendMessage(msg.chat.id,
-      `<tg-emoji emoji-id="6100651927551348857">👋</tg-emoji> Welcome <b>${user.firstName || user.username}</b> to <b>AuraShop EFootball Marketplace!</b>${adminBadge}\n\n` +
+      `<tg-emoji emoji-id="6100651927551348857">👋</tg-emoji> Welcome <b>${escapeHtml(user.firstName || user.username)}</b> to <b>AuraShop EFootball Marketplace!</b>${adminBadge}\n\n` +
       `<tg-emoji emoji-id="6102756813713706029">🛡️</tg-emoji> The SAFEST way to buy/sell EFootball accounts with escrow protection.\n\n` +
       `<tg-emoji emoji-id="6100453551601881338">📣</tg-emoji> <b>Official Channel:</b> ${process.env.TELEGRAM_CHANNEL_ID || '(set TELEGRAM_CHANNEL_ID)'}\n\n` +
       `<tg-emoji emoji-id="6104818848987358154">📌</tg-emoji> <b>Main Commands:</b>\n` +
@@ -595,7 +603,7 @@ const initTelegramBot = () => {
       `  /admins  — Show official admins list\n` +
       `  /menu    — Show menu`,
       { parse_mode: 'HTML' },
-    );
+    ).catch(e => console.error("Send message error:", e));
     showMainMenu(msg.chat.id, user);
   });
 

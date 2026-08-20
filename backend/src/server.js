@@ -14,6 +14,6 @@ const server = app.listen(PORT, () => {
 initTelegramBot(server);
 
 process.on('unhandledRejection', (err) => {
-  console.error(`Error: ${err.message}`);
-  server.close(() => process.exit(1));
+  console.error(`Unhandled Rejection Error: ${err.message}`, err);
+  // We no longer crash the server on unhandled rejections to prevent Telegram bot errors from bringing down the entire application.
 });
