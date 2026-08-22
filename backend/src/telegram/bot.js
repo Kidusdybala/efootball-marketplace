@@ -496,20 +496,29 @@ const initTelegramBot = () => {
     console.warn('⚠️ TELEGRAM_BOT_TOKEN not configured. Telegram bot disabled.');
     return null;
   }
-  bot = new TelegramBot(token, { polling: true });
+
+  const webhookUrl = process.env.APP_URL || process.env.API_URL;
+  if (webhookUrl && webhookUrl.startsWith('https')) {
+    bot = new TelegramBot(token, { webHook: true });
+    bot.setWebHook(`${webhookUrl}/api/telegram/webhook`);
+    console.log(`🤖 Telegram bot running on Webhooks (${webhookUrl})`);
+  } else {
+    bot = new TelegramBot(token, { polling: true });
+    console.log('🤖 Telegram bot running on Long Polling.');
+
+    bot.on('polling_error', (error) => {
+      if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+        console.warn('⚠️ Telegram Polling Conflict (409): Another instance is running. This is normal during deployments.');
+      } else {
+        console.error(`Telegram Polling Error: ${error.code} - ${error.message}`);
+      }
+    });
+  }
+
   setBot(bot);
-  console.log('🤖 Telegram bot running (MVP).');
 
-  bot.on('polling_error', (error) => {
-    if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
-      console.warn('⚠️ Telegram Polling Conflict (409): Another instance is running. This is normal during deployments.');
-    } else {
-      console.error(`Telegram Polling Error: ${error.code} - ${error.message}`);
-    }
-  });
-
-  process.once('SIGINT', () => bot.stopPolling());
-  process.once('SIGTERM', () => bot.stopPolling());
+  process.once('SIGINT', () => { if (bot.stopPolling) bot.stopPolling(); });
+  process.once('SIGTERM', () => { if (bot.stopPolling) bot.stopPolling(); });
 
   // -------- /start --------
   bot.onText(/\/start/, async (msg) => {

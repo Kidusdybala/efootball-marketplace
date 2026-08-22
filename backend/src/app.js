@@ -30,6 +30,18 @@ app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
+app.post('/api/telegram/webhook', (req, res) => {
+  const { getBot } = require('./telegram/botInstance');
+  try {
+    const bot = getBot();
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Webhook processing error:', err);
+    res.sendStatus(500);
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
