@@ -500,7 +500,9 @@ const initTelegramBot = () => {
   const webhookUrl = process.env.APP_URL || process.env.API_URL;
   if (webhookUrl && webhookUrl.startsWith('https')) {
     bot = new TelegramBot(token, { webHook: true });
-    bot.setWebHook(`${webhookUrl}/api/telegram/webhook`);
+    bot.setWebhook(`${webhookUrl}/api/telegram/webhook`).catch(err => {
+      console.error('Failed to set webhook:', err.message);
+    });
     console.log(`🤖 Telegram bot running on Webhooks (${webhookUrl})`);
   } else {
     bot = new TelegramBot(token, { polling: true });
