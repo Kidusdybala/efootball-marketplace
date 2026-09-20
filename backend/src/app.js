@@ -33,12 +33,43 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.post('/api/telegram/webhook', (req, res) => {
   const { getBot } = require('./telegram/botInstance');
   try {
+    console.log('📨 Telegram webhook received:', JSON.stringify(req.body).slice(0, 200));
     const bot = getBot();
     bot.processUpdate(req.body);
     res.sendStatus(200);
   } catch (err) {
     console.error('Webhook processing error:', err);
     res.sendStatus(500);
+  }
+});
+
+// Diagnostic: check webhook status with Telegram
+app.get('/api/telegram/webhook-info', async (req, res) => {
+  try {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) return res.status(500).json({ error: 'No bot token configured' });
+    const r = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+    const data = await r.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Force re-register the webhook (call this if the bot stops responding)
+app.get('/api/telegram/set-webhook', async (req, res) => {
+  try {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const appUrl = process.env.APP_URL || process.env.API_URL;
+    if (!token) return res.status(500).json({ error: 'No bot token' });
+    if (!appUrl) return res.status(500).json({ error: 'No APP_URL set' });
+    const webhookUrl = `${appUrl}/api/telegram/webhook`;
+    const r = await fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+    const data = await r.json();
+    console.log('🔗 Webhook manually set:', data);
+    res.json({ webhookUrl, result: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -500,10 +500,25 @@ const initTelegramBot = () => {
   const webhookUrl = process.env.APP_URL || process.env.API_URL;
   if (webhookUrl && webhookUrl.startsWith('https')) {
     bot = new TelegramBot(token, { webHook: true });
-    bot.setWebhook(`${webhookUrl}/api/telegram/webhook`).catch(err => {
-      console.error('Failed to set webhook:', err.message);
-    });
     console.log(`🤖 Telegram bot running on Webhooks (${webhookUrl})`);
+
+    // Register webhook with Telegram — retry up to 5 times with backoff
+    const registerWebhook = async (attempt = 1) => {
+      try {
+        await bot.setWebhook(`${webhookUrl}/api/telegram/webhook`);
+        console.log(`✅ Webhook registered successfully on attempt ${attempt}: ${webhookUrl}/api/telegram/webhook`);
+      } catch (err) {
+        console.error(`❌ setWebhook attempt ${attempt} failed: ${err.message}`);
+        if (attempt < 5) {
+          const delay = attempt * 3000; // 3s, 6s, 9s, 12s
+          console.log(`🔄 Retrying webhook registration in ${delay / 1000}s...`);
+          setTimeout(() => registerWebhook(attempt + 1), delay);
+        } else {
+          console.error('🚨 Could not register webhook after 5 attempts. Visit /api/telegram/set-webhook to register manually.');
+        }
+      }
+    };
+    registerWebhook();
   } else {
     bot = new TelegramBot(token, { polling: true });
     console.log('🤖 Telegram bot running on Long Polling.');
