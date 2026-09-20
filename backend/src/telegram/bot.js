@@ -505,7 +505,7 @@ const initTelegramBot = () => {
     // Register webhook with Telegram — retry up to 5 times with backoff
     const registerWebhook = async (attempt = 1) => {
       try {
-        await bot.setWebhook(`${webhookUrl}/api/telegram/webhook`);
+        await bot.setWebHook(`${webhookUrl}/api/telegram/webhook`);
         console.log(`✅ Webhook registered successfully on attempt ${attempt}: ${webhookUrl}/api/telegram/webhook`);
       } catch (err) {
         console.error(`❌ setWebhook attempt ${attempt} failed: ${err.message}`);
@@ -520,8 +520,18 @@ const initTelegramBot = () => {
     };
     registerWebhook();
   } else {
-    bot = new TelegramBot(token, { polling: true });
-    console.log('🤖 Telegram bot running on Long Polling.');
+    bot = new TelegramBot(token, { polling: false }); // start paused, clear webhook first
+    console.log('🤖 Telegram bot starting in Long Polling mode — clearing any stale webhook...');
+
+    bot.deleteWebhook()
+      .then(() => {
+        console.log('✅ Stale webhook cleared. Starting polling...');
+        bot.startPolling();
+      })
+      .catch(err => {
+        console.warn('⚠️ Could not clear webhook (will poll anyway):', err.message);
+        bot.startPolling();
+      });
 
     bot.on('polling_error', (error) => {
       if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
