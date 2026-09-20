@@ -932,33 +932,38 @@ const initTelegramBot = () => {
     const chatId = cb.message?.chat?.id;
     const msgId = cb.message?.message_id;
     if (!chatId) return;
-    const user = await getOrCreateUser(cb.from, chatId);
     const raw = cb.data || '';
     const answer = (t, alert = false) => bot.answerCallbackQuery(cb.id, { text: t || '', show_alert: alert }).catch(() => {});
     const edit = (text, extra) => bot.editMessageText(text, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', ...extra }).catch(() => {});
+
+    // ✅ Answer immediately so the button spinner disappears right away for the user.
+    // For alert-type errors we answer later with the error text.
+    if (raw !== 'noop') answer();
+
+    // Lazy user loader - only hits DB when the handler actually needs the user object
+    let _user = null;
+    const getUser = async () => { if (!_user) _user = await getOrCreateUser(cb.from, chatId); return _user; };
 
     try {
       if (raw === 'noop') { answer(); return; }
       if (raw === 'delete_msg') {
         bot.deleteMessage(chatId, msgId).catch(() => {});
-        return answer();
+        return;
       }
       if (raw.startsWith('pf_')) {
         const session = getSession(chatId);
-        if (!session || session.state !== 'create_platform') { answer('Session expired, start /sell again', true); return; }
+        if (!session || session.state !== 'create_platform') { return; }
         const platform = raw.slice(3);
         session.data.platform = platform;
         setSession(chatId, 'create_overall', session.data);
-        answer();
         bot.sendMessage(chatId, '<tg-emoji emoji-id="6100340203119971469">🔥</tg-emoji> <b>Step 4/8</b>\n\nEnter team overall rating as a number (e.g. <code>4800</code>), or type <code>skip</code>:', { parse_mode: 'HTML' });
         return;
       }
       if (raw.startsWith('neg_')) {
         const session = getSession(chatId);
-        if (!session || session.state !== 'create_negotiable') { answer('Session expired', true); return; }
+        if (!session || session.state !== 'create_negotiable') { return; }
         session.data.negotiable = raw === 'neg_yes';
         setSession(chatId, 'create_creds_email', session.data);
-        answer();
         bot.sendMessage(chatId,
           `<tg-emoji emoji-id="5963162821746233777">🏦</tg-emoji> <b>Now enter the account credentials</b> (1/3)\n\n` +
           `These will be encrypted with AES-256-GCM in the database. Only admin can decrypt them. They will be permanently DELETED from the database after escrow release.\n\n` +
@@ -968,12 +973,13 @@ const initTelegramBot = () => {
         return;
       }
       if (raw.startsWith('paid_start_')) {
+        const user = await getUser();
         const lid = raw.slice(11);
         const listing = await Listing.findById(lid);
-        if (!listing) { answer('Not found', true); return; }
-        if (['sold', 'deleted', 'rejected'].includes(listing.status)) { answer('Not available', true); return; }
+        if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
+        if (['sold', 'deleted', 'rejected'].includes(listing.status)) { bot.sendMessage(chatId, '❌ This listing is no longer available.'); return; }
         if (listing.escrowBuyerId && String(listing.escrowBuyerId) !== String(user._id) && !isAdminTelegramId(user.telegramId)) {
-          answer('Already in escrow', true);
+          bot.sendMessage(chatId, '⏳ This listing is already being processed by another buyer.');
           return;
         }
         listing.escrowBuyerId = user._id;
@@ -981,7 +987,6 @@ const initTelegramBot = () => {
         await listing.save();
         try { await updateChannelListingStatus(listing, '🟡 RESERVED'); } catch (e) { /* ignore */ }
         setSession(chatId, 'paid_receipt_upload', { listingId: String(listing._id) });
-        answer('Upload your receipt now');
         bot.sendMessage(chatId,
           `<tg-emoji emoji-id="5961015849199342153">🏦</tg-emoji> <b>Upload Receipt</b>\n\n` +
           `Listing: <b>${listing.title}</b> (${formatMoney(listing.price, listing.currency)})\n` +
@@ -993,9 +998,9 @@ const initTelegramBot = () => {
       }
       if (raw.startsWith('bank_')) {
         const session = getSession(chatId);
-        if (!session || session.state !== 'buy_listing') { answer('Session expired, start over', true); return; }
-        const listing = await Listing.findById(session.data.listingId);
-        if (!listing) { answer('Not found', true); return; }
+        if (!session || session.state !== 'buy_listing') { bot.sendMessage(chatId, '⚠️ Session expired. Please start over.'); return; }
+        const [listing] = await Promise.all([Listing.findById(session.data.listingId)]);
+        if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
         const priceStr = formatMoney(listing.price, listing.currency);
         let banks = [];
         try {
@@ -1006,8 +1011,7 @@ const initTelegramBot = () => {
         }
         const idx = parseInt(raw.slice(5), 10);
         const bank = banks[idx];
-        if (!bank) { answer('Bank not found', true); return; }
-        answer();
+        if (!bank) { bot.sendMessage(chatId, '❌ Payment method not found.'); return; }
         bot.sendMessage(chatId,
           `✅ Your Order Summary\n` +
           `Product: ${listing.title}\n` +
@@ -1032,32 +1036,32 @@ const initTelegramBot = () => {
         return;
       }
       if (raw.startsWith('verify_payment_')) {
-        if (!isAdminTelegramId(cb.from.id)) { answer('Admin only', true); return; }
+        if (!isAdminTelegramId(cb.from.id)) { return; }
+        const user = await getUser();
         const lid = raw.slice(15);
         const listing = await Listing.findById(lid).populate('sellerId escrowBuyerId');
-        if (!listing) { answer('Not found', true); return; }
-        if (!listing.paidAt) { answer('No receipt yet', true); return; }
-        if (listing.paymentVerifiedAt) { answer('Already verified'); return; }
+        if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
+        if (!listing.paidAt) { bot.sendMessage(chatId, '❌ No receipt yet.'); return; }
+        if (listing.paymentVerifiedAt) { bot.sendMessage(chatId, '✅ Already verified.'); return; }
         listing.paymentVerifiedAt = new Date();
         listing.paymentVerifiedBy = user._id;
         await listing.save();
-        answer('Payment verified');
         await notifyAdminEscrowUpdate(listing, `✅ Payment verified by admin @${user.username || '?'}`);
         return;
       }
       if (raw.startsWith('mark_seller_paid_')) {
-        if (!isAdminTelegramId(cb.from.id)) { answer('Admin only', true); return; }
+        if (!isAdminTelegramId(cb.from.id)) { return; }
+        const user = await getUser();
         const lid = raw.slice(17);
         const listing = await Listing.findById(lid).populate('sellerId escrowBuyerId');
-        if (!listing) { answer('Not found', true); return; }
-        if (!listing.releasedAt) { answer('Release first', true); return; }
-        if (listing.sellerPaidAt) { answer('Already marked paid'); return; }
+        if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
+        if (!listing.releasedAt) { bot.sendMessage(chatId, '❌ Release first.'); return; }
+        if (listing.sellerPaidAt) { bot.sendMessage(chatId, '✅ Already marked paid.'); return; }
         listing.sellerPaidAt = new Date();
         listing.sellerPaidBy = user._id;
         listing.status = 'sold';
         if (!listing.soldTo && listing.escrowBuyerId) listing.soldTo = listing.escrowBuyerId;
         await listing.save();
-        answer('Seller marked paid');
         const sellerChatId = listing.sellerId?.telegramChatId;
         const buyerChatId = listing.escrowBuyerId?.telegramChatId;
         if (sellerChatId) {
@@ -1085,15 +1089,13 @@ const initTelegramBot = () => {
         return;
       }
       if (raw.startsWith('approve_')) {
-        if (!isAdminTelegramId(cb.from.id)) { answer('Admin only', true); return; }
+        if (!isAdminTelegramId(cb.from.id)) { return; }
         const lid = raw.slice(8);
         const listing = await Listing.findById(lid).populate('sellerId');
-        if (!listing) { answer('Not found', true); return; }
-        answer('✅ Approved, posting to channel...');
+        if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
         await publishListingToChannel(listing, listing.sellerId);
         edit(
-          `<s>${(cb.message?.text || '').split('🆕 <b>NEW LISTING PENDING REVIEW</b>')[0] || ''}</s>\n` +
-          `✅ <b>LISTING APPROVED & POSTED TO CHANNEL</b>\n` +
+          `✅ <b>LISTING APPROVED &amp; POSTED TO CHANNEL</b>\n` +
           `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${listing.title} | <tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> ${formatMoney(listing.price, listing.currency)} | <tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${listing.platform}\n` +
           `Posted: ${process.env.TELEGRAM_CHANNEL_ID || 'Channel'} | ID: <code>${shortId(listing._id)}</code>`,
           { reply_markup: undefined, disable_web_page_preview: true },
@@ -1113,14 +1115,13 @@ const initTelegramBot = () => {
         return;
       }
       if (raw.startsWith('reject_')) {
-        if (!isAdminTelegramId(cb.from.id)) { answer('Admin only', true); return; }
+        if (!isAdminTelegramId(cb.from.id)) { return; }
         const lid = raw.slice(7);
         const listing = await Listing.findById(lid).populate('sellerId');
-        if (!listing) { answer('Not found', true); return; }
+        if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
         listing.status = 'rejected';
         listing.rejectionReason = 'Rejected by admin';
         await listing.save();
-        answer('❌ Rejected');
         edit(`❌ <b>LISTING REJECTED</b>\n${listing.title} — ID: <code>${shortId(listing._id)}</code>`, { reply_markup: undefined });
         const sellerChatId = listing.sellerId?.telegramChatId;
         if (sellerChatId) {
@@ -1132,13 +1133,12 @@ const initTelegramBot = () => {
         return;
       }
       if (raw.startsWith('release_')) {
-        if (!isAdminTelegramId(cb.from.id)) { answer('Admin only', true); return; }
+        if (!isAdminTelegramId(cb.from.id)) { return; }
         const lid = raw.slice(8);
-        answer('Releasing to buyer and wiping credentials...');
         const res = await releaseEscrow(cb.from.id, lid);
         if (!res.ok) { edit(`❌ Release failed: ${res.err}\n\nListing ID: <code>${shortId(lid)}</code>`, { reply_markup: undefined }); return; }
         edit(
-          `🎉 <b>ESCROW RELEASED & CREDS WIPED FROM DB</b>\n\n` +
+          `🎉 <b>ESCROW RELEASED &amp; CREDS WIPED FROM DB</b>\n\n` +
           `<tg-emoji emoji-id="6102684181521763740">💠</tg-emoji> ${res.listing.title} | <tg-emoji emoji-id="5961054379350955385">🏦</tg-emoji> ${formatMoney(res.listing.price, res.listing.currency)}\n` +
           `Buyer: @${res.listing.escrowBuyerId?.username || '?'}\n` +
           `Seller: @${res.listing.sellerId?.username || '?'}\n\n` +
@@ -1148,10 +1148,10 @@ const initTelegramBot = () => {
         return;
       }
       if (raw.startsWith('cancel_escrow_')) {
-        if (!isAdminTelegramId(cb.from.id)) { answer('Admin only', true); return; }
+        if (!isAdminTelegramId(cb.from.id)) { return; }
         const lid = raw.slice(14);
         const listing = await Listing.findById(lid);
-        if (!listing) { answer('Not found', true); return; }
+        if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
         listing.status = 'available';
         listing.paidReceiptFileId = undefined;
         listing.paidReceiptType = undefined;
@@ -1165,35 +1165,34 @@ const initTelegramBot = () => {
         listing.credentialsWiped = false;
         await listing.save();
         try { await restoreChannelListingButtons(listing); } catch (e) { /* ignore */ }
-        answer('Escrow cancelled, listing reverted to AVAILABLE.');
         edit(`❌ <b>ESCROW CANCELLED</b> — listing ${shortId(lid)} reverted to AVAILABLE.`, { reply_markup: undefined });
         return;
       }
       if (raw.startsWith('delete_listing_')) {
+        const user = await getUser();
         const lid = raw.slice(15);
         const listing = await Listing.findById(lid);
-        if (!listing) { answer('Not found', true); return; }
-        if (String(listing.sellerId) !== String(user._id) && !isAdminTelegramId(user.telegramId)) { answer('Not yours', true); return; }
+        if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
+        if (String(listing.sellerId) !== String(user._id) && !isAdminTelegramId(user.telegramId)) { bot.sendMessage(chatId, '❌ Not your listing.'); return; }
         listing.status = 'deleted';
         await listing.save();
         try { await updateChannelListingStatus(listing, '🗑️ REMOVED'); } catch (e) { /* */ }
-        answer('🗑️ Deleted');
         edit(`🗑️ <b>LISTING DELETED</b> — ID: <code>${shortId(lid)}</code>`, { reply_markup: undefined });
         return;
       }
 
       switch (raw) {
-        case 'browse': answer(); await browseAndShow(chatId, {}); return;
-        case 'search': answer(); setSession(chatId, 'search_query', {}); bot.sendMessage(chatId, '🔍 Enter search keyword:'); return;
-        case 'sell':
-          if (user.status === 'banned') { answer('Banned', true); return; }
+        case 'browse': await browseAndShow(chatId, {}); return;
+        case 'search': setSession(chatId, 'search_query', {}); bot.sendMessage(chatId, '🔍 Enter search keyword:'); return;
+        case 'sell': {
+          const user = await getUser();
+          if (user.status === 'banned') { bot.sendMessage(chatId, '❌ Your account is banned.'); return; }
           if (user.role === 'buyer') { user.role = 'seller'; await user.save(); }
-          answer();
           startCreateListingFlow(chatId);
           return;
-        case 'my_listings': answer(); await showMyListings(chatId, user); return;
+        }
+        case 'my_listings': { const user = await getUser(); await showMyListings(chatId, user); return; }
         case 'help':
-          answer();
           bot.sendMessage(chatId,
             `<tg-emoji emoji-id="6100340203119971469">🔥</tg-emoji> <b>AuraShop Commands</b>\n\n` +
             `<b>Everyone:</b>\n` +
@@ -1217,8 +1216,7 @@ const initTelegramBot = () => {
           );
           return;
         case 'admin_panel':
-          if (!isAdminTelegramId(cb.from.id)) { answer('Admin only', true); return; }
-          answer();
+          if (!isAdminTelegramId(cb.from.id)) { return; }
           await showAdminPanel(chatId);
           return;
       }
