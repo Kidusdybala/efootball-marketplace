@@ -1021,21 +1021,26 @@ const initTelegramBot = () => {
         );
         return;
       }
-      if (raw.startsWith('bank_')) {
+      if (raw.startsWith('pay_')) {
         const session = getSession(chatId);
         if (!session || session.state !== 'buy_listing') { bot.sendMessage(chatId, '⚠️ Session expired. Please start over.'); return; }
         const [listing] = await Promise.all([Listing.findById(session.data.listingId)]);
         if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
         const priceStr = formatMoney(listing.price, listing.currency);
+        
         let banks = [];
+        let dbBanks = [];
         try {
           const rawEnv = (process.env.PAYMENT_INSTRUCTIONS || '').trim();
           banks = rawEnv ? JSON.parse(rawEnv) : [];
+          const PaymentMethod = require('../models/PaymentMethod');
+          dbBanks = await PaymentMethod.find({ isActive: true }).sort({ createdAt: 1 });
         } catch (e) {
           banks = [];
         }
-        const idx = parseInt(raw.slice(5), 10);
-        const bank = banks[idx];
+        
+        const idx = dbBanks.findIndex(b => b.callback_data === raw);
+        const bank = idx !== -1 ? banks[idx] : null;
         if (!bank) { bot.sendMessage(chatId, '❌ Payment method not found.'); return; }
         bot.sendMessage(chatId,
           `✅ Your Order Summary\n` +
