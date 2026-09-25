@@ -15,6 +15,21 @@ const PORT = process.env.PORT || 5000;
 
     initTelegramBot();
 
+    // Keep-alive: ping our own health endpoint every 10 minutes so
+    // Render free tier never puts the service to sleep.
+    const appUrl = process.env.APP_URL;
+    if (appUrl && appUrl.startsWith('https')) {
+      setInterval(async () => {
+        try {
+          await fetch(`${appUrl}/api/health`);
+          console.log('✅ Keep-alive ping sent');
+        } catch (e) {
+          console.warn('⚠️ Keep-alive ping failed:', e.message);
+        }
+      }, 10 * 60 * 1000); // every 10 minutes
+      console.log('🔁 Keep-alive pinger started (every 10 min)');
+    }
+
     process.on('unhandledRejection', (err) => {
       console.error(`Unhandled Rejection Error: ${err.message}`, err);
       process.exit(1);
