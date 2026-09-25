@@ -1026,40 +1026,28 @@ const initTelegramBot = () => {
       if (raw.startsWith('pay_')) {
         const session = getSession(chatId);
         if (!session || session.state !== 'buy_listing') { bot.sendMessage(chatId, '⚠️ Session expired. Please start over.'); return; }
-        const [listing] = await Promise.all([Listing.findById(session.data.listingId)]);
+        const listing = await Listing.findById(session.data.listingId);
         if (!listing) { bot.sendMessage(chatId, '❌ Listing not found.'); return; }
         const priceStr = formatMoney(listing.price, listing.currency);
-        
-        let banks = [];
-        let dbBanks = [];
-        try {
-          const rawEnv = (process.env.PAYMENT_INSTRUCTIONS || '').trim();
-          banks = rawEnv ? JSON.parse(rawEnv) : [];
-          const PaymentMethod = require('../models/PaymentMethod');
-          dbBanks = await PaymentMethod.find({ isActive: true }).sort({ createdAt: 1 });
-        } catch (e) {
-          banks = [];
-        }
-        
-        const idx = dbBanks.findIndex(b => b.callback_data === raw);
-        const bank = idx !== -1 ? banks[idx] : null;
+
+        const PaymentMethod = require('../models/PaymentMethod');
+        const bank = await PaymentMethod.findOne({ callback_data: raw, isActive: true });
         if (!bank) { bot.sendMessage(chatId, '❌ Payment method not found.'); return; }
+
         bot.sendMessage(chatId,
-          `✅ Your Order Summary\n` +
-          `Product: ${listing.title}\n` +
-          `Price: ${priceStr}\n` +
-          `Bank: ${bank.name}\n\n` +
-          `Please send exactly ${priceStr} to:\n` +
-          `• Name: ${bank.holder}\n` +
-          `• Account: <code>${bank.account}</code>\n\n` +
-          `⚠️ Legal Warning / የህግ ማሳሰቢያ:\n` +
-          `By paying, you confirm you are 18+ and agree to our Terms.\n` +
-          `ክፍያ ሲፈፅሙ ዕድሜዎ 18+ መሆኑን እና በደንቡ መስማማትዎን ያረጋግጣሉ፡፡\n\n` +
-          `1. ከላይ ወደ ተቀመጠው አካውንት ትክክለኛውን ሂሳብ ያስገቡ።\n` +
-          `2. ክፍያውን እንደፈጸሙ ከ ${bank.name} የሚደርስዎትን የ SMS መልእክት ይመልከቱ::\n` +
-          `3. ⚠️ ማሳሰቢያ: ልክ ከላይ በምስሉ ላይ እንደተመለከተው፣ ክፍያውን ሲፈጽሙ ከ ${bank.name} የተላከሎትን መልእክት ሙሉውን (Copy) ያድርጉ::\n` +
-          `4. ኮፒ ያደረጉትን ሙሉ መልእክት አሁን እዚህ ይላኩ!\n` +
-          `(This order will expire in 30 minutes)`,
+          `🧾 <b>Order Summary</b>\n` +
+          `🎮 Product: <b>${escapeHtml(listing.title)}</b>\n` +
+          `💰 Price: <b>${priceStr}</b>\n` +
+          `🏦 Payment: <b>${escapeHtml(bank.name)}</b>\n\n` +
+          `<b>Send exactly ${priceStr} to:</b>\n` +
+          `• Holder: <b>${escapeHtml(bank.holder)}</b>\n` +
+          `• Account: <code>${escapeHtml(bank.account)}</code>\n\n` +
+          `⚠️ <b>ማሳሰቢያ / Legal Warning:</b>\n` +
+          `ክፍያ ሲፈፅሙ ዕድሜዎ 18+ መሆኑን እና ውሎቻችንን ተቀብለዋል ማለት ነው።\n\n` +
+          `1️⃣ ከላይ ወደ ተቀመጠው አካውንት ትክክለኛውን ሂሳብ ያስገቡ።\n` +
+          `2️⃣ ክፍያውን እንደፈጸሙ ከ <b>${escapeHtml(bank.name)}</b> የሚደርስዎትን SMS ይቀበሉ።\n` +
+          `3️⃣ ያ SMS ሙሉ ቅጂ (screenshot ወይም text) አሁን እዚህ ይላኩ!\n` +
+          `⏰ (This order will expire in 30 minutes)`,
           {
             parse_mode: 'HTML',
             reply_markup: { inline_keyboard: [[{ text: 'ከፍያ አድርጓል ✅', callback_data: `paid_start_${listing._id}` }]] },
