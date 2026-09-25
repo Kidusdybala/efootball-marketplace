@@ -505,7 +505,9 @@ const initTelegramBot = () => {
     // Register webhook with Telegram — retry up to 5 times with backoff
     const registerWebhook = async (attempt = 1) => {
       try {
-        await bot.setWebHook(`${webhookUrl}/api/telegram/webhook`);
+        await bot.setWebHook(`${webhookUrl}/api/telegram/webhook`, {
+          allowed_updates: ['message', 'callback_query', 'channel_post', 'edited_message'],
+        });
         console.log(`✅ Webhook registered successfully on attempt ${attempt}: ${webhookUrl}/api/telegram/webhook`);
       } catch (err) {
         console.error(`❌ setWebhook attempt ${attempt} failed: ${err.message}`);

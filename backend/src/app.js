@@ -66,10 +66,13 @@ app.get('/api/telegram/set-webhook', async (req, res) => {
     if (!token) return res.status(500).json({ error: 'No bot token' });
     if (!appUrl) return res.status(500).json({ error: 'No APP_URL set' });
     const webhookUrl = `${appUrl}/api/telegram/webhook`;
-    const r = await fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+    const allowedUpdates = ['message', 'callback_query', 'channel_post', 'edited_message'];
+    const r = await fetch(
+      `https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}&allowed_updates=${encodeURIComponent(JSON.stringify(allowedUpdates))}`
+    );
     const data = await r.json();
     console.log('🔗 Webhook manually set:', data);
-    res.json({ webhookUrl, result: data });
+    res.json({ webhookUrl, allowedUpdates, result: data });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
