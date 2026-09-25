@@ -499,7 +499,7 @@ const initTelegramBot = () => {
 
   const webhookUrl = process.env.APP_URL || process.env.API_URL;
   if (webhookUrl && webhookUrl.startsWith('https')) {
-    bot = new TelegramBot(token, { webHook: true });
+    bot = new TelegramBot(token, { polling: false });
     console.log(`🤖 Telegram bot running on Webhooks (${webhookUrl})`);
 
     // Register webhook with Telegram — retry up to 5 times with backoff

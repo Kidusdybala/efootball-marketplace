@@ -31,15 +31,17 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
 app.post('/api/telegram/webhook', (req, res) => {
+  // Acknowledge Telegram IMMEDIATELY — must respond within 5s or Telegram
+  // marks it failed and stops retrying. We process the update after.
+  res.sendStatus(200);
+
   const { getBot } = require('./telegram/botInstance');
   try {
-    console.log('📨 Telegram webhook received:', JSON.stringify(req.body).slice(0, 200));
+    console.log('📨 Telegram webhook received:', JSON.stringify(req.body).slice(0, 150));
     const bot = getBot();
     bot.processUpdate(req.body);
-    res.sendStatus(200);
   } catch (err) {
     console.error('Webhook processing error:', err);
-    res.sendStatus(500);
   }
 });
 
