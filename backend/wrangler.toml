@@ -22,8 +22,8 @@ NODE_ENV = "development"
 
 [[kv_namespaces]]
 binding = "TELEGRAM_SESSIONS"
-id = "your-kv-namespace-id"
-preview_id = "your-preview-kv-namespace-id"
+id = "83310251a6be499b922be1af7e5f0a07"
+preview_id = "83310251a6be499b922be1af7e5f0a07"
 
 [triggers]
 crons = ["*/5 * * * *"]
