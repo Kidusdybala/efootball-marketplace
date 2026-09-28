@@ -5,9 +5,9 @@
  * Uses Workers KV for session storage instead of in-memory Map
  */
 
-import * as Telegram from '../telegram.js';
-import { setSession, getSession, clearSession } from '../session.js';
-import { encrypt, decrypt } from '../crypto.js';
+import * as Telegram from './telegram.js';
+import { setSession, getSession, clearSession } from './session.js';
+import { encrypt, decrypt } from './crypto.js';
 import { formatMoney } from '../utils/money.js';
 import User from '../models/User.js';
 import Listing from '../models/Listing.js';
