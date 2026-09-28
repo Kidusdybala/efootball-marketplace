@@ -1,23 +1,54 @@
 import { app } from './app.js';
+import mongoose from 'mongoose';
+
+let isConnected = false;
+
+const connectDB = async (env) => {
+  if (isConnected) return;
+  const uri = env.MONGO_URI || process.env.MONGO_URI;
+  if (!uri) {
+    console.warn('MONGO_URI is not defined in environment variables. Database connection skipped.');
+    return;
+  }
+  try {
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    isConnected = true;
+    console.log('MongoDB Connected in Worker');
+  } catch (err) {
+    console.error(`DB Connection Error: ${err.message}`);
+  }
+};
 
 export default {
   async fetch(request, env, ctx) {
     if (env && typeof env === 'object') {
-      if (env.MONGODB_DATA_API_KEY) process.env.MONGODB_DATA_API_KEY = env.MONGODB_DATA_API_KEY;
-      if (env.MONGODB_DATA_API_URL) process.env.MONGODB_DATA_API_URL = env.MONGODB_DATA_API_URL;
-      if (env.MONGODB_DATA_SOURCE) process.env.MONGODB_DATA_SOURCE = env.MONGODB_DATA_SOURCE;
-      if (env.MONGODB_DATABASE) process.env.MONGODB_DATABASE = env.MONGODB_DATABASE;
-      if (env.JWT_SECRET) process.env.JWT_SECRET = env.JWT_SECRET;
-      if (env.ENCRYPTION_KEY) process.env.ENCRYPTION_KEY = env.ENCRYPTION_KEY;
-      if (env.TELEGRAM_BOT_TOKEN) process.env.TELEGRAM_BOT_TOKEN = env.TELEGRAM_BOT_TOKEN;
-      if (env.TELEGRAM_CHANNEL_ID) process.env.TELEGRAM_CHANNEL_ID = env.TELEGRAM_CHANNEL_ID;
-      if (env.TELEGRAM_BOT_USERNAME) process.env.TELEGRAM_BOT_USERNAME = env.TELEGRAM_BOT_USERNAME;
-      if (env.ADMIN_TELEGRAM_IDS) process.env.ADMIN_TELEGRAM_IDS = env.ADMIN_TELEGRAM_IDS;
-      if (env.ADMIN_CHAT_ID) process.env.ADMIN_CHAT_ID = env.ADMIN_CHAT_ID;
-      if (env.APP_URL) process.env.APP_URL = env.APP_URL;
-      if (env.DEFAULT_CURRENCY) process.env.DEFAULT_CURRENCY = env.DEFAULT_CURRENCY;
-      if (env.NODE_ENV) process.env.NODE_ENV = env.NODE_ENV;
+      // Safely assign environment variables to process.env
+      for (const key of Object.keys(env)) {
+        if (typeof env[key] === 'string') {
+          process.env[key] = env[key];
+        }
+      }
     }
+    
+    // Ensure database connection
+    await connectDB(env);
+    
     return app.fetch(request, env, ctx);
   },
+  
+  async scheduled(event, env, ctx) {
+    if (env && typeof env === 'object') {
+      for (const key of Object.keys(env)) {
+        if (typeof env[key] === 'string') {
+          process.env[key] = env[key];
+        }
+      }
+    }
+    
+    await connectDB(env);
+    console.log('Cron triggered at:', event.scheduledTime);
+    // Add any periodic background tasks here
+  }
 };

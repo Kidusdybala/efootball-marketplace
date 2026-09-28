@@ -11,8 +11,7 @@ TELEGRAM_CHANNEL_ID = "@Aurashop_marketplace"
 ADMIN_TELEGRAM_IDS = "1890482340,7117509984,5356565604,8282129488"
 ADMIN_CHAT_ID = "1890482340"
 MONGODB_DATABASE = "efootball"
-MONGODB_DATA_SOURCE = "Cluster0"
-MONGODB_DATA_API_URL = "https://data.mongodb.com/api/app/data-v2.endpoint/data/v1"
+MONGO_URI = "mongodb+srv://ronaldozgoat77_db_user:y8G6YUJGmgBDJaHg@cluster0.1pp7nvf.mongodb.net/efootball?appName=Cluster0"
 APP_URL = "https://aurashop-marketplace.<your-subdomain>.workers.dev"
 
 [env.production.vars]
