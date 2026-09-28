@@ -525,7 +525,7 @@ const initTelegramBot = () => {
     bot = new TelegramBot(token, { polling: false }); // start paused, clear webhook first
     console.log('🤖 Telegram bot starting in Long Polling mode — clearing any stale webhook...');
 
-    bot.deleteWebhook()
+    bot.deleteWebHook()
       .then(() => {
         console.log('✅ Stale webhook cleared. Starting polling...');
         bot.startPolling();

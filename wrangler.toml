@@ -1,0 +1,28 @@
+name = "aurashop-backend"
+main = "backend/src/edge/index.js"
+compatibility_date = "2025-0101"
+
+# Node.js compatibility for Buffer, process.env polyfills
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NODE_ENV = "production"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[kv_namespaces]]
+binding = "TELEGRAM_SESSIONS"
+id = ""
+preview_id = ""
+
+[[kv_namespaces]]
+binding = "BOT_STATE"
+id = ""
+preview_id = ""
+
+[env.production]
+vars = { NODE_ENV = "production" }
+
+[site]
+bucket = "./frontend/src"

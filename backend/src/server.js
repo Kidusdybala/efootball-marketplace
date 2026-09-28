@@ -32,7 +32,7 @@ const PORT = process.env.PORT || 5000;
 
     process.on('unhandledRejection', (err) => {
       console.error(`Unhandled Rejection Error: ${err.message}`, err);
-      process.exit(1);
+      if (process.env.NODE_ENV === 'production') process.exit(1);
     });
   } catch (err) {
     console.error(`Startup Error: ${err.message}`, err);
